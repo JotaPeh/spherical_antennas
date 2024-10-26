@@ -1,0 +1,9 @@
+Modelo:
+Diretividade (dB) = 6.441564858489114
+Eficiencia (%) = 86.4630053600991
+Ganho (dBi) = [5.80986813]
+
+Simulacao:
+Diretividade (dB) = 6.888671272945006
+Eficiencia (%) = 85.5087
+Ganho (dBi) = 6.20877431142827

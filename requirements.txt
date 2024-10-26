@@ -1,0 +1,7 @@
+numpy==1.26.3
+scipy==1.11.4
+matplotlib==3.8.2
+plotly==5.20.0
+pandas==2.1.4
+sympy==1.13.2
+kaleido==0.2.1
