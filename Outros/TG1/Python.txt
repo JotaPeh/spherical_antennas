@@ -1,2 +1,0 @@
-Biblioteca do Python com as funções especiais: https://docs.scipy.org/doc/scipy/reference/special.html
-Para a carta de Smith foi usado: https://plotly.com/python/smith-charts/
