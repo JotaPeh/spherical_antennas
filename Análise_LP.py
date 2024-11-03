@@ -19,15 +19,12 @@ L, M, Dtheta, Dphi, thetap, phip, flm_des = [parametros[key] for key in ['L', 'M
 L = int(L)
 M = int(M)
 
-# flm_des = 1575.42e6     # Frequência de operação desejada
-# L, M = 0, 1             # Modo TM_LM em teste, TM10 ou TM01 apenas
-
 # Constantes gerais
 dtr = np.pi/180         # Graus para radianos (rad/°)
 e0 = 8.854e-12          # (F/m)
 u0 = np.pi*4e-7         # (H/m)
 c = 1/np.sqrt(e0*u0)    # Velocidade da luz no vácuo (m/s)
-gamma = 0.5772156649015328606065120900824024310421 # Constante de Euler-Mascheroni
+gamma = 0.577216        # Constante de Euler-Mascheroni
 eps = 1e-5              # Limite para o erro numérico
 
 dtc = 0 * dtr
@@ -37,10 +34,6 @@ a = 100e-3              # Raio da esfera de terra (m)
 h = 1.524e-3            # Espessura do substrato dielétrico (m)
 a_bar = a + h/2         # Raio médio da esfera de terra (m)
 b = a + h               # Raio exterior do dielétrico (m)
-# if M == 0:
-#     Dtheta, Dphi = 0.5979379798577318, 0.7773193738150517
-# elif M == 1:
-#     Dtheta, Dphi = 0.7905473258370139, 0.6081133275669339
 theta1c = np.pi/2 - Dtheta/2 + dtc      # Ângulo de elevação 1 da cavidade (rad)
 theta2c = np.pi/2 + Dtheta/2 + dtc      # Ângulo de elevação 2 da cavidade (rad)
 phi1c = np.pi/2 - Dphi/2 + dpc          # Ângulo de azimutal 1 da cavidade (rad)
@@ -55,12 +48,6 @@ phi1, phi2 = phi1c + deltaPhi, phi2c - deltaPhi             # Ângulos azimutais
 # Coordenadas dos alimentadores coaxiais (rad)
 thetap = [thetap]  
 phip = [phip]
-# if M == 0:
-#     thetap = [96.68711790508867 * dtr]  
-#     phip = [90.0 * dtr]
-# elif M == 1:
-#     thetap = [90.0 * dtr]  
-#     phip = [96.75123556473255 * dtr]
 probes = len(thetap)    # Número de alimentadores
 df = 1.3e-3             # Diâmetro do pino central dos alimentadores coaxiais (m)
 er = 2.55               # Permissividade relativa do substrato dielétrico
@@ -72,8 +59,8 @@ tgdel = 0.0022          # Tangente de perdas
 sigma = 5.8e50          # Condutividade elétrica dos condutores (S/m)
 Z0 = 50                 # Impedância intrínseca (ohm)
 
-# path = 'HFSS/LP_pre/'
-path = 'HFSS/LP/'
+# path = 'HFSS/LP_pre/'   # Resultados anteriores à correção das franjas
+path = 'HFSS/LP/'       # Resultados
 output_folder = 'Resultados/Analise_LP_TM'+str(L)+str(M)
 os.makedirs(output_folder, exist_ok=True)
 figures = []
@@ -155,7 +142,6 @@ def root_find(n):
     # Remoção de raízes inválidas
     k = 0
     for r in roots:
-        # if round(r-roots[0], 6) % 1 == 0 and n != 0:
         if r < n * np.pi / (phi2c - phi1c) - 1 + eps and round(r, 5) != 0:
             k += 1
     if show:
@@ -195,7 +181,6 @@ def Er_lm_norm(theta,phi,l,m):                 # Campo elétrico dos modos 'norm
 
 phi = np.linspace(phi1c, phi2c, 200)           # Domínio de phi (rad)
 theta = np.linspace(theta1c, theta2c, 200)     # Domínio de theta (rad)
-# L, M = 0, 1                                    # Modo em teste
 
 kLM = 2*np.pi*flm[L][M]*np.sqrt(u0*es)
 
@@ -216,7 +201,6 @@ plt.colorbar()
 plt.xlabel(r'$\varphi$' + ' (graus)', fontsize=14)
 plt.ylabel(r'$\theta$' + ' (graus)', fontsize=14)
 plt.title('Mapa de Amplitude (Normalizado)')
-# plt.show()
 figures.append(fig)
 
 # Mapa de Fase
@@ -226,7 +210,6 @@ plt.colorbar(label = 'Fase (grau)')
 plt.xlabel(r'$\varphi$' + ' (graus)', fontsize=14)
 plt.ylabel(r'$\theta$' + ' (graus)', fontsize=14)
 plt.title('Mapa de Fase')
-# plt.show()
 figures.append(fig)
 
 # Impedância de entrada - Circuito RLC:
@@ -234,7 +217,6 @@ def R2(v, l, m):                               # Quadrado da função auxiliar p
     return R(v, l, m)**2
 
 def tgefTot(klm, L, M):
-    # Qdie = 2 * np.pi * f * es / sigma_die # + Perdas de irradiação = 1/tgdel
     Rs = np.sqrt(klm * np.sqrt(u0/es) / (2 * sigma))
     Qc = klm * np.sqrt(u0/es) * h / (2 * Rs)
     Qc = Qc * (3*a**2 + 3*a*h + h**2) / (3*a**2 + 3*a*h + h**2 * 3/2)
@@ -277,9 +259,7 @@ def tgefTot(klm, L, M):
 
         Q01 = (np.pi / 96) * klm * np.sqrt(er) * (b**3 - a**3) * I01 * Dphi / (np.abs(R(np.cos((theta1c+theta2c)/2),L,M))**2 * S01)
         return tgdel + 1/Qc + 1/Q01
-    else:
-        print('Erro ao calcular a tangente efeitiva de perdas! Modo inexistente')
-
+    
 def RLC(f, klm, L, M, p1, p2):
     U = M * np.pi / (phi2c - phi1c)
     Ilm = spi.quad(partial(R2, l = L, m = M),np.cos(theta2c),np.cos(theta1c))[0]
@@ -356,7 +336,6 @@ plt.ylabel('Impedância (' + r'$\Omega$' + ')')
 plt.title('Impedância: Modelo')
 plt.legend()
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 # Dados do HFSS
@@ -404,7 +383,6 @@ plt.xlabel('Frequência (GHz)')
 plt.ylabel(r'Impedância ($\Omega$)')
 plt.legend()
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 fig = plt.figure()
@@ -424,7 +402,6 @@ plt.ylabel(r'$|\Gamma_{in}|$' + ' (dB)')
 plt.title('Coeficiente de reflexão (' + r'$s_{11}$' + ')')
 plt.legend()
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 # Campos distantes
@@ -444,14 +421,10 @@ def Eth_v_prot(theta, phi):
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ethv = ((1j ** Ml) * (b * sp.lpmn(m, l, np.cos(theta))[1] * (Eth0_A * IdP_1 + Eth0_C * IdP_2) * (-np.sin(theta))/ (dH2_dr) \
             + 1j * Mm**2 * sp.lpmn(m, l, np.cos(theta))[0] * (Eth0_A * IpP_1 + Eth0_C * IpP_2) / (k * np.sin(theta) * H2) ) * \
             (phi2-phi1) * np.sinc(Mm*(phi2-phi1)/(2*np.pi)) * np.cos(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
-        # if phi == theta and show:
-        #     print(Ethv)
-            # print(np.round(IpP_1-IpP_2,10))
-        return np.sum(np.dot(delm, Ethv)) # V/m
+        return np.sum(np.dot(delm, Ethv))
         
 def Eph_v_prot(theta, phi):
     Eth0_A, Eth0_C = 1, 1
@@ -467,11 +440,10 @@ def Eph_v_prot(theta, phi):
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ephv = ((1j ** Ml) * (b * sp.lpmn(m, l, np.cos(theta))[0] * (Eth0_A * IdP_1 + Eth0_C * IdP_2)/ (np.sin(theta) * dH2_dr) \
             + 1j * sp.lpmn(m, l, np.cos(theta))[1] * (Eth0_A * IpP_1 + Eth0_C * IpP_2) * (-np.sin(theta)) / (k * H2) ) * \
             2 * np.sin(Mm * (phi2-phi1)/2) * np.sin(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
-        return np.sum(np.dot(delm, Ephv)) # V/m
+        return np.sum(np.dot(delm, Ephv))
 
 def Eth_h_prot(theta, phi):
     Eph0 = 1
@@ -483,7 +455,6 @@ def Eth_h_prot(theta, phi):
     
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ethh = ((-1j ** Ml) * (b * I_th * sp.lpmn(m, l, np.cos(theta))[1] * (-np.sin(theta)) / dH2_dr \
             + 1j * sp.lpmn(m, l, np.cos(theta))[0] * I_dth / (k * H2 * np.sin(theta)) ) * \
             4 * Eph0 * np.sin(Mm*Dphic/2) * np.cos(Mm*(phi2-phi1+Dphic)/2) * np.sin(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
@@ -499,7 +470,6 @@ def Eph_h_prot(theta, phi):
     
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ephh = ((1j ** Ml) * (Mm**2 * b * I_th * sp.lpmn(m, l, np.cos(theta))[0] / (np.sin(theta) * dH2_dr) \
             + 1j * sp.lpmn(m, l, np.cos(theta))[1] * I_dth * (-np.sin(theta)) / (k *H2) ) * \
             2 * Eph0 * Dphic * np.sinc(Mm*Dphic/(2 * np.pi)) * np.cos(Mm*(phi2-phi1+Dphic)/2) * np.cos(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
@@ -643,7 +613,6 @@ if show:
     print("Tempo decorrido para o cálculo dos 2 campos e gráficos: ", fim - inicio, "segundos\n\n")
 
 plt.tight_layout()
-# plt.show()
 figures.append(fig)
 
 # Ganho (broadside)

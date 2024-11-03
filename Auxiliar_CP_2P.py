@@ -6,11 +6,10 @@ import matplotlib.pyplot as plt
 from functools import partial
 import time
 import warnings
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import pandas as pd
 import os
 
+inicio_total = time.time()
 filein = 'CP_2P_Param'
 inicio_total = time.time()
 show = 0
@@ -24,7 +23,7 @@ dtr = np.pi/180         # Graus para radianos (rad/°)
 e0 = 8.854e-12          # (F/m)
 u0 = np.pi*4e-7         # (H/m)
 c = 1/np.sqrt(e0*u0)    # Velocidade da luz no vácuo (m/s)
-gamma = 0.5772156649015328606065120900824024310421 # Constante de Euler-Mascheroni
+gamma = 0.577216        # Constante de Euler-Mascheroni
 eps = 1e-5              # Limite para o erro numérico
 
 dtc = 0 * dtr
@@ -45,13 +44,11 @@ deltatheta1 = h/a       # Largura 32angular 1 do campo de franjas e da abertura 
 deltatheta2 = h/a       # Largura angular 2 do campo de franjas e da abertura polar (rad)
 theta1, theta2 = theta1c + deltatheta1, theta2c - deltatheta2 # Ângulos polares físicos do patch (rad)
 deltaPhi = h/a          # Largura angular do campo de franjas e da abertura azimutal (rad)
-phi1, phi2 = phi1c + deltaPhi, phi2c - deltaPhi             # Ângulos azimutais físicos do patch (rad)
+phi1, phi2 = phi1c + deltaPhi, phi2c - deltaPhi               # Ângulos azimutais físicos do patch (rad)
 
 # Coordenadas dos alimentadores coaxiais (rad)
 thetap = [thetap1, thetap2]  
 phip = [phip1, phip2]
-# thetap = [90 * dtr, 94.66858482574794 * dtr]  
-# phip = [94.73584985094497 * dtr, 90 * dtr]
 probes = len(thetap)    # Número de alimentadores
 df = 1.3e-3             # Diâmetro do pino central dos alimentadores coaxiais (m)
 er = 2.55               # Permissividade relativa do substrato dielétrico
@@ -142,7 +139,6 @@ def root_find(n):
     # Remoção de raízes inválidas
     k = 0
     for r in roots:
-        # if round(r-roots[0], 6) % 1 == 0 and n != 0:
         if r < n * np.pi / (phi2c - phi1c) - 1 + eps and round(r, 5) != 0:
             k += 1
     if show:
@@ -178,7 +174,6 @@ def R2(v, l, m):                               # Quadrado da função auxiliar p
     return R(v, l, m)**2
 
 def tgefTot(klm, L, M):
-    # Qdie = 2 * np.pi * f * es / sigma_die # + Perdas de irradiação = 1/tgdel
     Rs = np.sqrt(klm * np.sqrt(u0/es) / (2 * sigma))
     Qc = klm * np.sqrt(u0/es) * h / (2 * Rs)
     Qc = Qc * (3*a**2 + 3*a*h + h**2) / (3*a**2 + 3*a*h + h**2 * 3/2)
@@ -213,8 +208,6 @@ def tgefTot(klm, L, M):
 
         Q01 = (np.pi / 24) * klm * np.sqrt(er) * (b**3 - a**3) * I01 * Dphi / (np.abs(R(np.cos((theta1c+theta2c)/2),L,M))**2 * S01)
         return tgdel + 1/Qc + 1/Q01
-    else:
-        print('Erro ao calcular a tangente efeitiva de perdas!')
 
 def RLC(f, klm, L, M, p1, p2):
     U = M * np.pi / (phi2c - phi1c)
@@ -279,8 +272,7 @@ def S(Kdes, Dtheta, Dphi, theta, phi):
     return Sr
 
 def RA(klm, freq, tgef01, tgef10, Dtheta, Dphi, thetap2, phip1, ratioI, theta, phi, field = 0):
-    L01, M01 = (np.sqrt(1+4*a_bar**2 * klm**2)-1)/2, np.pi/Dphi
-    L10, M10 = (np.sqrt(1+4*a_bar**2 * klm**2)-1)/2, 0
+    M01 = np.pi/Dphi
     theta1c, theta2c = np.pi/2 - Dtheta/2, np.pi/2 + Dtheta/2
     phi1c = np.pi/2 - Dphi/2
     Dphip = np.exp(1.5)*df/(2*a*np.sin(np.pi/2))
@@ -315,14 +307,10 @@ def Eth_v_prot(theta, phi):
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ethv = ((1j ** Ml) * (b * sp.lpmn(m, l, np.cos(theta))[1] * (Eth0_A * IdP_1 + Eth0_C * IdP_2) * (-np.sin(theta))/ (dH2_dr) \
             + 1j * Mm**2 * sp.lpmn(m, l, np.cos(theta))[0] * (Eth0_A * IpP_1 + Eth0_C * IpP_2) / (k * np.sin(theta) * H2) ) * \
             (phi2-phi1) * np.sinc(Mm*(phi2-phi1)/(2*np.pi)) * np.cos(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
-        # if phi == theta and show:
-        #     print(Ethv)
-            # print(np.round(IpP_1-IpP_2,10))
-        return np.sum(np.dot(delm, Ethv)) # V/m
+        return np.sum(np.dot(delm, Ethv))
         
 def Eph_v_prot(theta, phi):
     k = 2 * np.pi * flm_des / c
@@ -338,11 +326,10 @@ def Eph_v_prot(theta, phi):
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ephv = ((1j ** Ml) * (b * sp.lpmn(m, l, np.cos(theta))[0] * (Eth0_A * IdP_1 + Eth0_C * IdP_2)/ (np.sin(theta) * dH2_dr) \
             + 1j * sp.lpmn(m, l, np.cos(theta))[1] * (Eth0_A * IpP_1 + Eth0_C * IpP_2) * (-np.sin(theta)) / (k * H2) ) * \
             2 * np.sin(Mm * (phi2-phi1)/2) * np.sin(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
-        return np.sum(np.dot(delm, Ephv)) # V/m
+        return np.sum(np.dot(delm, Ephv))
 
 def Eth_h_prot(theta, phi):
     k = 2 * np.pi * flm_des / c
@@ -354,7 +341,6 @@ def Eth_h_prot(theta, phi):
     
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ethh = ((-1j ** Ml) * (b * I_th * sp.lpmn(m, l, np.cos(theta))[1] * (-np.sin(theta)) / dH2_dr \
             + 1j * sp.lpmn(m, l, np.cos(theta))[0] * I_dth / (k * H2 * np.sin(theta)) ) * \
             4 * Eph0 * np.sin(Mm*Dphic/2) * np.cos(Mm*(phi2-phi1+Dphic)/2) * np.sin(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
@@ -370,7 +356,6 @@ def Eph_h_prot(theta, phi):
     
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ephh = ((1j ** Ml) * (Mm**2 * b * I_th * sp.lpmn(m, l, np.cos(theta))[0] / (np.sin(theta) * dH2_dr) \
             + 1j * sp.lpmn(m, l, np.cos(theta))[1] * I_dth * (-np.sin(theta)) / (k *H2) ) * \
             2 * Eph0 * Dphic * np.sinc(Mm*Dphic/(2 * np.pi)) * np.cos(Mm*(phi2-phi1+Dphic)/2) * np.cos(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
@@ -409,89 +394,17 @@ def E_HCP(theta, phi, sentido):
         tot = np.abs(Eph*(kRA-1j))
     return np.clip(20*np.log10(tot/np.max(tot[~np.isnan(tot)])), -30, 0)
 
-#####################################
 
-def Gain():
-    Kef01 = (2 * np.pi * flm_des) * np.sqrt(es * u0 * (1-1j*tgefTot(klm, 0, 1)))
-    Kef10 = (2 * np.pi * flm_des) * np.sqrt(es * u0 * (1-1j*tgefTot(klm, 1, 0)))
-    k01 = 2*np.pi*flm[0][1]*np.sqrt(u0*es)
-    k10 = 2*np.pi*flm[1][0]*np.sqrt(u0*es)
-    K0 = klm / np.sqrt(er)
-
-    eta0 = np.sqrt(u0 / e0)
-
-    M01 = np.pi/Dphi
-
-    I10 = spi.quad(partial(R2, l = 1, m = 0),np.cos(theta2c),np.cos(theta1c))[0]
-    I01 = spi.quad(partial(R2, l = 0, m = 1),np.cos(theta2c),np.cos(theta1c))[0]
-
-    IdP_1 = sp.lpmn(m, l, np.cos((theta1+theta1c)/2))[1] * np.sin((theta1+theta1c)/2)**2 * -deltatheta1
-    IdP_2 = sp.lpmn(m, l, np.cos((theta2+theta2c)/2))[1] * np.sin((theta2+theta2c)/2)**2 * -deltatheta2
-    IpP_1 = sp.lpmn(m, l, np.cos((theta1+theta1c)/2))[0] * deltatheta1
-    IpP_2 = sp.lpmn(m, l, np.cos((theta2+theta2c)/2))[0] * deltatheta2
-    dH2_dr = np.tile(schelkunoff2(l, K0 * b),(m + 1, 1))
-    H2 = np.tile(hankel_spher2(l, K0 * b),(m + 1, 1))
-
-    S10 = (((phi2-phi1) * np.sinc(Mm*(phi2-phi1)/(2*np.pi))) ** 2 / (S_lm)) * (np.abs(b*(IdP_1+IdP_2)/dH2_dr)**2 + Mm**2 * np.abs((IpP_1+IpP_2)/(K0*H2))**2)
-    Ckth = np.sum(np.dot(delm, S10)) / (2*np.pi*eta0)
-
-    S01 = ((deltaPhi * np.sinc(Mm*deltaPhi/(2*np.pi)) * np.cos(Mm*(phi2-phi1+deltaPhi)/2)) ** 2 / (S_lm)) * (Mm**2 * np.abs(b*I_th/dH2_dr)**2 + np.abs(I_dth/(K0*H2))**2)
-    Ckph = 2*np.sum(np.dot(delm, S01)) / (np.pi*eta0)
-
-    ki = Ckth * (R(np.cos(theta1c),1,0) * R(np.cos(thetap[1]),1,0) * np.abs(ratioI) / (np.abs(Kef10**2-k10**2)*I10))**2 \
-        + Ckph * (2 * R(np.cos((theta1c+theta2c)/2),0,1) * R(0,0,1) * np.cos(M01*(phip[0] - phi1c)) * np.sinc(M01*Dphip[0]/(2*np.pi)) / (np.abs(Kef01**2-k01**2)*I01))**2
-
-    ki *= (2 * np.pi * flm_des * u0 / (Dphi * a_bar**2))**2 / np.real((ZCP(flm_des, 1, 1) * np.abs(ratioI)**2 + ZCP(flm_des, 2, 2))/2)
-
-    Ceth2 = (2 * np.pi * flm_des * u0 / (Dphi * a_bar**2))**2 * (R(np.cos(theta1c),1,0) * R(np.cos(thetap[1]),1,0) * np.abs(ratioI) / (np.abs(Kef10**2-k10**2)*I10))**2
-    Ceph2 = (2 * np.pi * flm_des * u0 / (Dphi * a_bar**2))**2 * (2 * R(np.cos((theta1c+theta2c)/2),0,1) * R(np.cos(thetap[0]),0,1) * np.cos(M01*(phip[0] - phi1c)) * np.sinc(M01*Dphip[0]/(2*np.pi)) / (np.abs(Kef01**2-k01**2)*I01))**2
-
-    with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            Sthv = ((1j ** Ml) * (- b * sp.lpmn(m, l, 0)[1] * (IdP_1 + IdP_2) / (dH2_dr) \
-                + 1j * Mm**2 * sp.lpmn(m, l, 0)[0] * (IpP_1 + IpP_2) / (K0 * H2) ) * \
-                (phi2-phi1) * np.sinc(Mm*(phi2-phi1)/(2*np.pi)) / S_lm)
-            Sthv = np.sum(np.dot(delm, Sthv)) / np.pi
-        
-            Sphh = ((1j ** Ml) * (Mm**2 * b * I_th * sp.lpmn(m, l, 0)[0] / dH2_dr \
-                + 1j * sp.lpmn(m, l, 0)[1] * -I_dth / (K0 * H2) ) * \
-                2 * deltaPhi * np.sinc(Mm*deltaPhi/(2 * np.pi)) * np.cos(Mm*(phi2-phi1+deltaPhi)/2) / S_lm)
-            Sphh = np.sum(np.dot(delm, Sphh)) / np.pi
-
-    D = 2*np.pi/eta0 * (Ceth2 * np.abs(Sthv)**2 + Ceph2 * np.abs(Sphh)**2) / (Ceth2 * Ckth + Ceph2 * Ckph)
-
-    G = ki * D
-    
-    if 1:
-        print('ki = ', ki)
-        print('D = ', D, ', dB: ', 10*np.log10(D))
-        print('G = ', G, ', dB: ', 10*np.log10(G), '\n\n')
-    
-    # exit()
-    
-    # parametros = f"Modelo:\nDiretividade (dB) = {10*np.log10(D)}\nEficiencia (%) = {100*ki[0]}\nGanho (dBi) = {10*np.log10(G)}\n\n"
-    # if M == 0:
-    #     parametros += f"Simulacao:\nDiretividade (dB) = {10*np.log10(10**(GainLin/10)/0.864511)}\nEficiencia (%) = {86.4511}\nGanho (dBi) = {GainLin}" 
-    # elif M == 1:
-    #     parametros += f"Simulacao:\nDiretividade (dB) = {10*np.log10(10**(GainLin/10)/0.855087)}\nEficiencia (%) = {85.5087}\nGanho (dBi) = {GainLin}"
-    # out_dir = 'Resultados'
-    # out_file = os.path.join(out_dir, 'LP'+str(1-M)+str(M)+'_Ganho.txt')
-    # os.makedirs(out_dir, exist_ok=True)
-    # with open(out_file, 'w') as f:
-    #     f.write(parametros)
-
-Gain()
-
-#####################################
-
-print('Opção 1:\n') # Ephi e Etheta
+# Opções alternativas testadas para o cálculo da diretividade da antena com duas pontas de prova
+# Opção 1
+if show:
+    print('\n\nAlternativas de cálculo de diretividade')
+    print('Opção 1:\n') # Ephi e Etheta
 def Alpha(ang):
     Ev =  E_v(np.array([ang+eps]+[1]*4), (phi1c + phi2c) / 2 + eps)[0]+3
     return Ev
 root = root_scalar(Alpha, bracket=[2*dtr, np.pi/2-2*dtr], method='bisect')
 alphaP = np.pi - 2*np.array(root.root)
-
-# print(E_v(np.array([np.array(root.root)+eps]+[1]*4), (phi1c + phi2c) / 2 + eps)[0])
 
 def Alpha(ang):
     Ev =  E_v((theta1c + theta2c) / 2 + eps, np.array([ang+eps]+[1]*4))[0]+3
@@ -500,7 +413,9 @@ root = root_scalar(Alpha, bracket=[2*dtr, np.pi/2-2*dtr], method='bisect')
 alphaT = np.pi - 2*np.array(root.root)
 
 Dv = 4*np.pi/(alphaT*alphaP)
-print(alphaT/dtr, alphaP/dtr)
+if show:
+    print('Ângulos de meia potência:')
+    print(alphaT/dtr, alphaP/dtr)
 
 def Alpha(ang):
     Eh =  E_h(np.array([ang+eps]+[1]*4), (phi1c + phi2c) / 2 + eps)[0]+3
@@ -515,21 +430,24 @@ root = root_scalar(Alpha, bracket=[2*dtr, np.pi/2-2*dtr], method='bisect')
 alphaT = np.pi - 2*np.array(root.root)
 
 Dh = 4*np.pi/(alphaT*alphaP)
-print(alphaT/dtr, alphaP/dtr)
+if show:
+    print(alphaT/dtr, alphaP/dtr)
 
-print('\n',Dv,Dh, 10*np.log10(Dv))
+    print('\nEm cada direção (v, h, v (dB)): ',Dv,Dh, 10*np.log10(Dv))
 D_3dB = 10*np.log10(Dv+Dh)
-print('Diretividade (3dB):', D_3dB)
-#####################################
+if show:
+    print('Diretividade (3dB):', D_3dB)
 
-print('\n\nOpção 2:\n') # Erhcp
+# Opção 2
+if show:
+    print('\n\nOpção 2:\n') # Erhcp
 
 dataTh = pd.read_csv(path+'Gain Plot HCP theta.csv')
 gainTh_T = dataTh['dB(GainRHCP) [] - Freq=\'1.575GHz\' Theta=\'90.0000000000002deg\'']
 G_RHCP = np.max(gainTh_T)
 dataPh = pd.read_csv(path+'Gain Plot HCP phi.csv')
 gainPh_P = dataPh['dB(GainLHCP) [] - Freq=\'1.575GHz\' Phi=\'90.0000000000002deg\'']
-gainPh_P -= G_RHCP#np.max(gainPh_P)
+gainPh_P -= G_RHCP
 gTest = np.max(gainPh_P)
 
 angulos = np.arange(85,95,1) * dtr + eps
@@ -537,18 +455,12 @@ angulos = np.arange(85,95,1) * dtr + eps
 u =  E_HCP((theta1c + theta2c) / 2 + eps, angulos, 'L')+gTest
 v = E_HCP((theta1c + theta2c) / 2 + eps, angulos, 'R')
 Emax = np.max(10*np.log10(10**(u/10)+10**(v/10)))
-# print(10*np.log10(10**(u/10)+10**(v/10)))
-# print(Emax)
 
-# print('here')
 def Alpha(ang):
     u =  E_HCP((theta1c + theta2c) / 2 + eps, np.array([ang+eps]+[1]*4), 'L')[0]+gTest
     v = E_HCP((theta1c + theta2c) / 2 + eps, np.array([ang+eps]+[1]*4), 'R')[0]
     Eh = 10*np.log10(10**(u/10)+10**(v/10))
-    # print(Eh-Emax+3)
-    # print(v)
     return Eh-Emax+3
-    return v+3
 root = root_scalar(Alpha, bracket=[2*dtr, np.pi/2-2*dtr], method='bisect')
 alphaP = np.pi - 2*np.array(root.root)
 
@@ -556,27 +468,27 @@ def Alpha(ang):
     u =  E_HCP(np.array([ang+eps]+[1]*4), (phi1c + phi2c) / 2 + eps, 'L')[0]+gTest
     v = E_HCP(np.array([ang+eps]+[1]*4), (phi1c + phi2c) / 2 + eps, 'R')[0]
     Eh = 10*np.log10(10**(u/10)+10**(v/10))
-    # print(v)
     return Eh-Emax+3
-    return v+3
 root = root_scalar(Alpha, bracket=[2*dtr, np.pi/2-2*dtr], method='bisect')
 alphaT = np.pi - 2*np.array(root.root)
 
 Dh = 4*np.pi/(alphaT*alphaP)
-print(alphaT/dtr, alphaP/dtr)
+if show:
+    print('Ângulos de meia potência:')
+    print(alphaT/dtr, alphaP/dtr)
 
-# print('\n\n',Dv,Dh, 10*np.log10(Dv))
 D_3dB = 10*np.log10(Dh)
-print('\nDiretividade (3dB):', D_3dB, '\n\n')
+if show:
+    print('\nDiretividade (3dB):', D_3dB, '\n\n')
 
-######################################
+# Figuras referentes à antena com duas pontas de prova alimentada por meio de uma híbrida em quadratura
 output_folder = 'Resultados/Analise_CP2_Hib'
 os.makedirs(output_folder, exist_ok=True)
 figures = []
 
 path = 'HFSS/CP2_Hib/'
 
-# Axial Ratio
+# Razão Axial
 data_hfss = pd.read_csv(path+'Axial Ratio Plot f.csv')
 freqs_hfss = data_hfss['F [GHz]'] # GHz
 ra_hfss = data_hfss['dB(AxialRatioValue) [] - Phi=\'90.0000000000002deg\' Theta=\'90.0000000000002deg\'']
@@ -584,7 +496,6 @@ ra_hfss = data_hfss['dB(AxialRatioValue) [] - Phi=\'90.0000000000002deg\' Theta=
 fig = plt.figure()
 plt.plot(freqs_hfss, ra_hfss, label='RA simulado')
 plt.axvline(x=flm_des / 1e9, color='r', linestyle='--')
-# plt.axhline(y=3, color='g', linestyle='--')
 plt.xlabel('Frequência (GHz)')
 plt.ylabel('Razão Axial (dB)')
 plt.title('Razão Axial')
@@ -599,7 +510,6 @@ dB_s11 = data_hfss['dB(S(Port1,Port1)) []'] # dB
 
 fig = plt.figure()
 plt.plot(freqs_hfss, dB_s11, label=r'$|s_{11}|$ simulado')
-# plt.axhline(y=-10, color='b', linestyle='--')
 plt.axvline(x=flm_des / 1e9, color='r', linestyle='--')
 plt.xlabel('Frequência (GHz)')
 plt.ylabel(r'$|s_{11}|$' + ' (dB)')
@@ -618,11 +528,12 @@ dataTh = pd.read_csv(path+'Gain Plot HCP theta.csv')
 angTh = dataTh['Phi [deg]'] * dtr + eps
 gainTh_T = dataTh['dB(GainRHCP) [] - F=\'1.575GHz\' Theta=\'90.0000000000002deg\'']
 G_RHCP = np.max(gainTh_T)
-gainTh_T -= G_RHCP#np.max(gainTh_T)
+gainTh_T -= G_RHCP
 gainTh_P = dataTh['dB(GainLHCP) [] - F=\'1.575GHz\' Theta=\'90.0000000000002deg\'']
 G_LHCP = np.max(gainTh_P)
-gainTh_P -= G_RHCP#np.max(gainTh_P)
-print('Ganho com híbrida (dBi):', G_RHCP)
+gainTh_P -= G_RHCP
+if show:
+    print('Ganho com híbrida (dBi):', G_RHCP)
 
 # Plotar o primeiro gráfico
 axs[0].plot(angTh, gainTh_T, color='red', label = 'Simulação')
@@ -651,9 +562,14 @@ fig.legend(handles, figlabels, loc='lower center', ncol=1)
 figures.append(fig)
 
 plt.tight_layout()
-# plt.show()
 
 # Salvamento das figuras
 for i, fig in enumerate(figures):
     fig.savefig(os.path.join(output_folder, f'figure_{i+1}.eps'), format = 'eps')
     fig.savefig(os.path.join(output_folder, f'figure_{i+1}.png'))
+
+fim_total = time.time()
+print("Tempo total para o fim do código: ", fim_total - inicio_total, "segundos\n\n")
+
+if show:
+    plt.show()

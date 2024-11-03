@@ -17,16 +17,13 @@ show = 0
 parametros = {line.split(' = ')[0]: float(line.split(' = ')[1]) for line in open('Resultados/Param/' + filein + '.txt')}
 Dtheta, Dphi, thetap, phip, p, flm_des, dtc, dpc = [parametros[key] for key in ['Dtheta', 'Dphi', 'thetap', 'phip', 'p', 'f', 'dtc', 'dpc']]
 
-# flm_des = 1575.42e6
-
 # Constantes gerais
 dtr = np.pi/180         # Graus para radianos (rad/°)
 e0 = 8.854e-12          # (F/m)
 u0 = np.pi*4e-7         # (H/m)
 c = 1/np.sqrt(e0*u0)    # Velocidade da luz no vácuo (m/s)
-gamma = 0.5772156649015328606065120900824024310421 # Constante de Euler-Mascheroni
+gamma = 0.577216        # Constante de Euler-Mascheroni
 eps = 1e-5              # Limite para o erro numérico
-# p = 0.5891601562500001  # Razão entre os modos
 
 dtc *= dtr
 dpc *= dtr
@@ -40,13 +37,7 @@ theta1c = np.pi/2 - Dtheta/2 + dtc      # Ângulo de elevação 1 da cavidade (r
 theta2c = np.pi/2 + Dtheta/2 + dtc      # Ângulo de elevação 2 da cavidade (rad)
 phi1c = np.pi/2 - Dphi/2 + dpc          # Ângulo de azimutal 1 da cavidade (rad)
 phi2c = np.pi/2 + Dphi/2 + dpc          # Ângulo de azimutal 2 da cavidade (rad)
-# theta1c = 72.76294499082795 * dtr + dtc      # Ângulo de elevação 1 da cavidade (rad)
-# theta2c = 107.237055009172054 * dtr + dtc     # Ângulo de elevação 2 da cavidade (rad)
-# phi1c = 72.8975672678347 * dtr + dpc        # Ângulo de azimutal 1 da cavidade (rad)
-# phi2c = 107.1024327321653 * dtr + dpc       # Ângulo de azimutal 2 da cavidade (rad)
 
-# Dtheta = theta2c - theta1c
-# Dphi = phi2c - phi1c
 deltatheta1 = h/a       # Largura angular 1 do campo de franjas e da abertura polar (rad)
 deltatheta2 = h/a       # Largura angular 2 do campo de franjas e da abertura polar (rad)
 theta1, theta2 = theta1c + deltatheta1, theta2c - deltatheta2 # Ângulos polares físicos do patch (rad)
@@ -56,8 +47,6 @@ phi1, phi2 = phi1c + deltaPhi, phi2c - deltaPhi             # Ângulos azimutais
 # Coordenadas dos alimentadores coaxiais (rad)
 thetap = [thetap]  
 phip = [phip]
-# thetap = [95.37115596269443 * dtr]  
-# phip = [94.25125044754893 * dtr]
 probes = len(thetap)    # Número de alimentadores
 df = 1.3e-3             # Diâmetro do pino central dos alimentadores coaxiais (m)
 er = 2.55               # Permissividade relativa do substrato dielétrico
@@ -69,7 +58,7 @@ tgdel = 0.0022          # Tangente de perdas
 sigma = 5.8e50          # Condutividade elétrica dos condutores (S/m)
 Z0 = 50                 # Impedância intrínseca (ohm)
 
-# path = 'HFSS/CP_pre/'
+# path = 'HFSS/CP_pre/'   # Resultados anteriores à correção das franjas
 path = 'HFSS/CP/'       # Resultados
 output_folder = 'Resultados/Analise_CP'
 os.makedirs(output_folder, exist_ok=True)
@@ -136,7 +125,7 @@ with warnings.catch_warnings():
 def Equation(l, theta1f, theta2f, m):
     return np.where(np.abs(np.cos(theta1f)) < 1 and np.abs(np.cos(theta2f)) < 1, DP(theta1f,l,m)*DQ(theta2f,l,m)-DQ(theta1f,l,m)*DP(theta2f,l,m) , 1)
 
-Lambda = np.linspace(-0.1, 32, 64) # Domínio de busca, o professor usou a janela de 0.1
+Lambda = np.linspace(-0.1, 32, 64) # Domínio de busca
 rootsLambda = []
 
 def root_find(n):
@@ -152,7 +141,6 @@ def root_find(n):
     # Remoção de raízes inválidas
     k = 0
     for r in roots:
-        # if round(r-roots[0], 6) % 1 == 0 and n != 0:
         if r < n * np.pi / (phi2c - phi1c) - 1 + eps and round(r, 5) != 0:
             k += 1
     if show:
@@ -201,12 +189,11 @@ L, M = 0, 1                                    # Modo em teste
 
 P, T = np.meshgrid(phi, theta)
 Er_LM = Er_lm_norm(T, P, L, M)
-Er_LM2 = Er_lm_norm(T, P, M, L) # Superposição dos modos
+Er_LM2 = Er_lm_norm(T, P, M, L)                # Superposição dos modos
 Amp = np.abs((Er_LM/np.max(np.abs(Er_LM))+Er_LM2/np.max(np.abs(Er_LM2)))/2)      # Normalizado
 Phase = np.angle(Er_LM/np.max(np.abs(Er_LM))+Er_LM2/np.max(np.abs(Er_LM2)))
 
 if show:
-    # print('\nMáximo do campo', np.max(Er_LM))
     print('Modo testado: TM', L, M)
     print('Frequência do modo testado: ', flm[L][M] / 1e9)
 
@@ -217,7 +204,6 @@ plt.colorbar()
 plt.xlabel(r'$\varphi$' + ' (graus)', fontsize=14)
 plt.ylabel(r'$\theta$' + ' (graus)', fontsize=14)
 plt.title('Mapa de Amplitude (Normalizado)')
-# plt.show()
 figures.append(fig)
 
 # Mapa de Fase
@@ -227,7 +213,6 @@ plt.colorbar(label = 'Fase (grau)')
 plt.xlabel(r'$\varphi$' + ' (graus)', fontsize=14)
 plt.ylabel(r'$\theta$' + ' (graus)', fontsize=14)
 plt.title('Mapa de Fase')
-# plt.show()
 figures.append(fig)
 
 # Impedância de entrada - Circuito RLC:
@@ -235,7 +220,6 @@ def R2(v, l, m):                               # Quadrado da função auxiliar p
     return R(v, l, m)**2
 
 def tgefTot(klm, L, M):
-    # Qdie = 2 * np.pi * f * es / sigma_die # + Perdas de irradiação = 1/tgdel
     Rs = np.sqrt(klm * np.sqrt(u0/es) / (2 * sigma))
     Qc = klm * np.sqrt(u0/es) * h / (2 * Rs)
     Qc = Qc * (3*a**2 + 3*a*h + h**2) / (3*a**2 + 3*a*h + h**2 * 3/2)
@@ -354,7 +338,6 @@ plt.ylabel('Impedância (' + r'$\Omega$' + ')')
 plt.title('Impedância')
 plt.legend()
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 # Dados do HFSS
@@ -385,18 +368,15 @@ plt.xlabel('Frequência (GHz)')
 plt.ylabel(r'Impedância ($\Omega$)')
 plt.legend()
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 # Carta de Smith
-fig = go.Figure()
+figSm = go.Figure()
 Zchart =Zin_modelo/Z0 # Multiplicar fora do argumento da função abaixo
-fig.add_trace(go.Scattersmith(imag=np.imag(Zchart).tolist(), real=np.real(Zchart).tolist(), marker_color="green", name="Zin modelo"))
+figSm.add_trace(go.Scattersmith(imag=np.imag(Zchart).tolist(), real=np.real(Zchart).tolist(), marker_color="green", name="Zin modelo"))
 Zchart = (re_hfss+1j*im_hfss)/Z0
-fig.add_trace(go.Scattersmith(imag=np.imag(Zchart).tolist(), real=np.real(Zchart).tolist(), marker_color="red", name="Zin simulado"))
-if show:
-    fig.show()
-fig.write_image(output_folder+"/Smith.png")
+figSm.add_trace(go.Scattersmith(imag=np.imag(Zchart).tolist(), real=np.real(Zchart).tolist(), marker_color="red", name="Zin simulado"))
+figSm.write_image(output_folder+"/Smith.png")
 
 # Gamma_in = s11
 if path == 'HFSS/CP_pre/':
@@ -409,7 +389,6 @@ dB_s11 = data_hfss['dB(S(1,1)) []'] # dB
 fig = plt.figure()
 plt.plot(freqs_hfss, 20*np.log10(np.abs((Zin_modelo-Z0)/(Zin_modelo+Z0))), label=r'$s_{11}$' + ' modelo')
 plt.plot(freqs_hfss, dB_s11, label=r'$s_{11}$' + ' simulado')
-# plt.plot(freqs_hfss, 20*np.log10(np.abs((Zin_hfss-Z0)/(Zin_hfss+Z0))), label=r'$s_{11}$' + ' simulado')
 plt.axhline(y=-10, color='r', linestyle='--')
 plt.axvline(x=flm_des / 1e9, color='b', linestyle='--')
 if path == 'HFSS/CP_pre/':
@@ -419,9 +398,7 @@ plt.ylabel(r'$|\Gamma_{in}|$' + ' (dB)')
 plt.title('Coeficiente de reflexão (' + r'$s_{11}$' + ')')
 plt.legend(loc='lower right')
 plt.grid(True)
-# plt.show()
 figures.append(fig)
-
 
 # Razão Axial
 tgef = (1-p)*tgefTot(k10, 1, 0) + p*tgefTot(k01, 0, 1)
@@ -458,8 +435,7 @@ def S(Kdes, Dtheta, Dphi, theta, phi):
     return Sr
 
 def RA(k01, k10, Kef, Dtheta, Dphi, thetap, phip, theta, phi, field = 0):
-    L01, M01 = (np.sqrt(1+4*a_bar**2 * k01**2)-1)/2, np.pi/Dphi
-    L10, M10 = (np.sqrt(1+4*a_bar**2 * k10**2)-1)/2, 0
+    M01 = np.pi/Dphi
     theta1c, theta2c = np.pi/2 - Dtheta/2, np.pi/2 + Dtheta/2
     phi1c = np.pi/2 - Dphi/2
     Dphip = np.exp(1.5)*df/(2*a*np.sin(thetap))
@@ -490,7 +466,6 @@ def plotRA(k01, k10, tgef, Dtheta, Dphi, thetap, phip):
     elif path == 'HFSS/CP/':
         data_hfss = pd.read_csv(path+'Axial Ratio Plot f.csv')
     freqs_hfss = data_hfss['Freq [GHz]'] # GHz
-    # freqs_hfss -= 1.61 - flm_des*1e-9
     ra_hfss = data_hfss['dB(AxialRatioValue) [] - Phi=\'90.0000000000002deg\' Theta=\'90.0000000000002deg\'']
 
     fig = plt.figure()
@@ -507,7 +482,6 @@ def plotRA(k01, k10, tgef, Dtheta, Dphi, thetap, phip):
     plt.title('Razão Axial')
     plt.grid(True)
     plt.legend()
-    # plt.show()
     figures.append(fig)
 
     Kef = 2*np.pi*flm_des*np.sqrt(u0*es*(1-1j*tgef))
@@ -518,9 +492,6 @@ def plotRA(k01, k10, tgef, Dtheta, Dphi, thetap, phip):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         kRA = np.vectorize(RA)(k01, k10, Kef, Dtheta, Dphi, thetap, phip, theta, phi)
-        # kRAneg = np.vectorize(RA)(k01, k10, Kef, Dtheta, Dphi, thetap, phip, theta, -phi)[1:]
-        # kRA = np.concatenate((kRAneg[::-1],kRA))
-
         T = np.sqrt(1+kRA**4+2 * kRA**2 * np.cos(2*np.angle(kRA)))
         RAf = np.sqrt((1+kRA**2+T)/(1+kRA**2-T))
         RAfdB = np.abs(20*np.log10(np.abs(RAf)))
@@ -535,7 +506,6 @@ def plotRA(k01, k10, tgef, Dtheta, Dphi, thetap, phip):
         ra_hfss = data_hfss['dB(AxialRatioValue) [] - Freq=\'1.57666666666667GHz\' Phi=\'90.0000000000002deg\'']
 
     fig = plt.figure()
-    # plt.plot(np.linspace(-np.pi, np.pi, 2*len(theta)-1) / dtr, RAfdB, label='RA modelo')
     plt.plot(theta / dtr, RAfdB, label='RA modelo')
     plt.plot(angs_hfss[91:], ra_hfss[91:], label='RA simulado')
     plt.axvline(x=90, color='r', linestyle='--')
@@ -545,11 +515,9 @@ def plotRA(k01, k10, tgef, Dtheta, Dphi, thetap, phip):
     plt.title('Razão Axial')
     plt.grid(True)
     plt.legend()
-    # plt.show()
     figures.append(fig)
 
     theta = np.pi/2
-    # phi = np.linspace(-np.pi, np.pi, 181)
     phi = np.linspace(0, np.pi, 181)
 
     with warnings.catch_warnings():
@@ -576,7 +544,6 @@ def plotRA(k01, k10, tgef, Dtheta, Dphi, thetap, phip):
     plt.title('Razão Axial')
     plt.grid(True)
     plt.legend()
-    # plt.show()
     figures.append(fig)
 
 plotRA(k01, k10, tgef, Dtheta, Dphi, thetap, phip)
@@ -598,14 +565,10 @@ def Eth_v_prot(theta, phi):
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ethv = ((1j ** Ml) * (b * sp.lpmn(m, l, np.cos(theta))[1] * (Eth0_A * IdP_1 + Eth0_C * IdP_2) * (-np.sin(theta))/ (dH2_dr) \
             + 1j * Mm**2 * sp.lpmn(m, l, np.cos(theta))[0] * (Eth0_A * IpP_1 + Eth0_C * IpP_2) / (k * np.sin(theta) * H2) ) * \
             (phi2-phi1) * np.sinc(Mm*(phi2-phi1)/(2*np.pi)) * np.cos(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
-        # if phi == theta and show:
-        #     print(Ethv)
-            # print(np.round(IpP_1-IpP_2,10))
-        return np.sum(np.dot(delm, Ethv)) # V/m
+        return np.sum(np.dot(delm, Ethv))
         
 def Eph_v_prot(theta, phi):
     k = 2 * np.pi * flm_des / c
@@ -621,11 +584,10 @@ def Eph_v_prot(theta, phi):
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ephv = ((1j ** Ml) * (b * sp.lpmn(m, l, np.cos(theta))[0] * (Eth0_A * IdP_1 + Eth0_C * IdP_2)/ (np.sin(theta) * dH2_dr) \
             + 1j * sp.lpmn(m, l, np.cos(theta))[1] * (Eth0_A * IpP_1 + Eth0_C * IpP_2) * (-np.sin(theta)) / (k * H2) ) * \
             2 * np.sin(Mm * (phi2-phi1)/2) * np.sin(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
-        return np.sum(np.dot(delm, Ephv)) # V/m
+        return np.sum(np.dot(delm, Ephv))
 
 def Eth_h_prot(theta, phi):
     k = 2 * np.pi * flm_des / c
@@ -637,7 +599,6 @@ def Eth_h_prot(theta, phi):
     
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ethh = ((-1j ** Ml) * (b * I_th * sp.lpmn(m, l, np.cos(theta))[1] * (-np.sin(theta)) / dH2_dr \
             + 1j * sp.lpmn(m, l, np.cos(theta))[0] * I_dth / (k * H2 * np.sin(theta)) ) * \
             4 * Eph0 * np.sin(Mm*Dphic/2) * np.cos(Mm*(phi2-phi1+Dphic)/2) * np.sin(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
@@ -653,7 +614,6 @@ def Eph_h_prot(theta, phi):
     
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ephh = ((1j ** Ml) * (Mm**2 * b * I_th * sp.lpmn(m, l, np.cos(theta))[0] / (np.sin(theta) * dH2_dr) \
             + 1j * sp.lpmn(m, l, np.cos(theta))[1] * I_dth * (-np.sin(theta)) / (k *H2) ) * \
             2 * Eph0 * Dphic * np.sinc(Mm*Dphic/(2 * np.pi)) * np.cos(Mm*(phi2-phi1+Dphic)/2) * np.cos(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
@@ -786,7 +746,6 @@ if show:
     print("Tempo decorrido para o cálculo dos 4 campos e gráficos: ", fim - inicio, "segundos\n\n")
 
 plt.tight_layout()
-# plt.show()
 figures.append(fig)
 
 # Campos RHCP e LHCP
@@ -804,11 +763,11 @@ if path == 'HFSS/CP/':
     gainTh_P -= np.max(gainTh_P)
     gainTh_T = dataTh['dB(GainRHCP) [] - Freq=\'1.57666666666667GHz\' Theta=\'90.0000000000002deg\'']
     G_RHCP = np.max(gainTh_T)
-    gainTh_T -= G_LHCP#np.max(gainTh_T)
+    gainTh_T -= G_LHCP
     dataPh = pd.read_csv(path+'Gain Plot HCP phi.csv')
     angPh = dataPh['Theta [deg]'] * dtr + eps
     gainPh_T = dataPh['dB(GainRHCP) [] - Freq=\'1.57666666666667GHz\' Phi=\'90.0000000000002deg\'']
-    gainPh_T -= G_LHCP#np.max(gainPh_T)
+    gainPh_T -= G_LHCP
     gainPh_P = dataPh['dB(GainLHCP) [] - Freq=\'1.57666666666667GHz\' Phi=\'90.0000000000002deg\'']
     gainPh_P -= np.max(gainPh_P)
     gTest = np.max(gainPh_T)
@@ -867,7 +826,6 @@ handles, figlabels = axs[0, 1].get_legend_handles_labels()
 fig.legend(handles, figlabels, loc='lower center', ncol=1)
 
 plt.tight_layout()
-# plt.show()
 figures.append(fig)
 
 fim = time.time()
@@ -924,7 +882,6 @@ handles, figlabels = axs[0].get_legend_handles_labels()
 fig.legend(handles, figlabels, loc='lower center', ncol=1)
 
 plt.tight_layout()
-# plt.show()
 figures.append(fig)
 
 # Ganho (broadside)
@@ -1026,7 +983,6 @@ if path == 'HFSS/CP/':
     gainPh_T = dataPh['dB(GainTheta) [] - Freq=\'1.57542GHz\' Phi=\'90.0000000000002deg\''].to_numpy()
     if normalizado:
         gainPh_T -= np.max(gainPh_T)
-    ##################
 
     datakRA = pd.read_csv(path+'kRA_CP.csv')
     datakRA = datakRA[datakRA['Theta[deg]'] == 90]
@@ -1051,9 +1007,6 @@ if path == 'HFSS/CP/':
     angulos = np.arange(0,360,1) * dtr + eps
     fig, axs = plt.subplots(1, 2, figsize=(10, 5), subplot_kw={'projection': 'polar'})
 
-    # axs[0].plot(angulos, E_GIR(angulos, (phi1c + phi2c) / 2 + eps), label = 'Spinning Pattern')
-    # axs[0].plot(angulos, E_v(angulos, (phi1c + phi2c) / 2 + eps), label = r'$E_\theta^V(\theta,\varphi)$')
-    # axs[0].plot(angulos, E_h(angulos, (phi1c + phi2c) / 2 + eps), label = r'$E_\varphi^H(\theta,\varphi)$')
     axs[0].plot(angPh, gainPh_P, label = r'$E_\varphi^H(\theta,\varphi)$')
     axs[0].plot(angPh, gainPh_T, label = r'$E_\theta^V(\theta,\varphi)$')
     axs[0].plot(angPh, Eg_hfss_Ph, color='red', label = 'Simulação')
@@ -1065,10 +1018,7 @@ if path == 'HFSS/CP/':
     axs[0].set_thetagrids(angles, labels=angles_labels)
     axs[0].set_rlabel_position(45)
 
-    # axs[1].plot(angulos, E_GIR((theta1c + theta2c) / 2 + eps, angulos), label = 'Spinning Pattern')
-    # axs[1].plot(angulos, E_v((theta1c + theta2c) / 2 + eps, angulos), label = r'$E_\theta^V(\theta,\varphi)$')
     axs[1].plot(angTh, gainTh_P, label = r'$E_\theta^V(\theta,\varphi)$')
-    # axs[1].plot(angulos, E_h((theta1c + theta2c) / 2 + eps, angulos), label = r'$E_\varphi^H(\theta,\varphi)$')
     axs[1].plot(angTh, gainTh_T, label = r'$E_\varphi^H(\theta,\varphi)$')
     axs[1].plot(angTh, Eg_hfss_Th, color='red', label = 'Simulação')
     axs[1].set_xlabel('Ângulo ' + r'$\varphi$' + ' para ' + r'$\theta = \frac{\theta_{1c}+\theta_{2c}}{2}$')
@@ -1085,7 +1035,6 @@ if path == 'HFSS/CP/':
     figures.append(fig)
 
     plt.tight_layout()
-    # plt.show()
 
 # Salvamento das figuras
 for i, fig in enumerate(figures):
@@ -1095,4 +1044,5 @@ fim_total = time.time()
 print("Tempo total para o fim do código: ", fim_total - inicio_total, "segundos\n")
 
 if show:
+    figSm.show()
     plt.show()

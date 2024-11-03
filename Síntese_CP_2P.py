@@ -10,16 +10,14 @@ import warnings
 import os
 
 inicio_total = time.time()
-show = 1
-test = 0
-project = 0
+show = 0
 
 # Constantes gerais
 dtr = np.pi/180         # Graus para radianos (rad/°)
 e0 = 8.854e-12          # (F/m)
 u0 = np.pi*4e-7         # (H/m)
 c = 1/np.sqrt(e0*u0)    # Velocidade da luz no vácuo (m/s)
-gamma = 0.5772156649015328606065120900824024310421 # Constante de Euler-Mascheroni
+gamma = 0.577216        # Constante de Euler-Mascheroni
 eps = 1e-5              # Limite para o erro numérico
 
 # Geometria da cavidade
@@ -41,8 +39,6 @@ es = e0 * er            # Permissividade do substrato dielétrico (F/m)
 tgdel = 0.0022          # Tangente de perdas
 sigma = 5.8e50          # Condutividade elétrica dos condutores (S/m)
 Z0 = 50                 # Impedância intrínseca (ohm)
-
-# Dphip = np.exp(1.5)*df/(2*a*np.sin(95.65869673565197 * dtr))
 
 output_folder = 'Resultados/Patch'
 os.makedirs(output_folder, exist_ok=True)
@@ -91,6 +87,7 @@ def DQ(theta, l, u):
         return l*legQ(z, l, u)/np.tan(theta) - (l+u) * legQ(z, l-1, u) / np.sin(theta)
 
 #########################################################################################################################################################
+# Funções auxiliares de busca de raízes
 def EquationCircTheta(Dtheta, Dphi, m, K):
     theta1, theta2 = np.pi/2 - Dtheta/2, np.pi/2 + Dtheta/2
     Lamb = (np.sqrt(1+4*a_bar**2 * K**2)-1)/2
@@ -132,10 +129,11 @@ def Phi_find(K, Dtheta):
         return np.array(roots)
 
 #########################################################################################################################################################
-# Projeto iterativo
+# Projeto da antena com duas pontas
 flm_des = 1575.42e6 # Banda L1
-Kdes = 2*np.pi*flm_des*np.sqrt(u0*e0)
 l = m = 35 # m <= l
+
+Kdes = 2*np.pi*flm_des*np.sqrt(u0*e0)
 Ml, Mm = np.meshgrid(np.arange(0,l+1), np.arange(0,m+1))
 delm = np.ones(m+1)
 delm[0] = 0.5
@@ -244,9 +242,6 @@ def tgefTot(klm, mode, Dtheta, Dphi):
 
         Q01 = (np.pi / 24) * klm * np.sqrt(er) * (b**3 - a**3) * I01 * Dphi / (np.abs(R(np.cos((theta1c+theta2c)/2),L01,M01,theta1c))**2 * np.sum(S01))
         return tgdel + 1/Qc + 1/Q01
-    else:
-        print('Modo não permitido')
-        exit()
 
 def S(Kdes, Dtheta, Dphi):
     theta1c, theta2c = np.pi/2 - Dtheta/2, np.pi/2 + Dtheta/2
@@ -294,7 +289,7 @@ def RA(klm, freq, tgef01, tgef10, Dtheta, Dphi, thetap2, phip1, ratioI):
 
     return ratioI * (R(np.cos(thetap2),L10,M10,theta1c) / (R(np.cos(np.pi/2),L01,M01,theta1c) * np.cos(M01*(phip1 - phi1c)) * np.sinc(M01*Dphip/(2*np.pi)))) * V
 
-# Início
+# Início do Projeto
 def ProjCP2():
     klm = 2*np.pi*flm_des*np.sqrt(u0*es)
     Dtheta = Theta_find(klm)[0]
@@ -316,10 +311,10 @@ def ProjCP2():
     
     RAb = RA(klm, flm_des, tgef01, tgef10, Dtheta, Dphi, thetap2, phip1, 1)
     ratioI = 1/np.abs(RAb) * np.exp(1j*(np.pi/2 - np.angle(RAb)))
-    
-    print('RA (abs/angle): ', np.abs(RA(klm, flm_des, tgef01, tgef10, Dtheta, Dphi, thetap2, phip1, ratioI)), np.angle(RA(klm, flm_des, tgef01, tgef10, Dtheta, Dphi, thetap2, phip1, ratioI))/dtr, '\n')
 
-    print('Z11: ',Z(flm_des, klm, thetap1, phip1, tgef01, tgef10, Dtheta, Dphi), '\nZ22: ', Z(flm_des, klm, thetap2, phip2, tgef01, tgef10, Dtheta, Dphi), '\n RA: ', RA(klm, flm_des, tgef01, tgef10, Dtheta, Dphi, thetap2, phip1, ratioI), '\n\n')
+    if show:
+        print('RA (abs/angle): ', np.abs(RA(klm, flm_des, tgef01, tgef10, Dtheta, Dphi, thetap2, phip1, ratioI)), np.angle(RA(klm, flm_des, tgef01, tgef10, Dtheta, Dphi, thetap2, phip1, ratioI))/dtr, '\n')
+        print('Z11: ',Z(flm_des, klm, thetap1, phip1, tgef01, tgef10, Dtheta, Dphi), '\nZ22: ', Z(flm_des, klm, thetap2, phip2, tgef01, tgef10, Dtheta, Dphi), '\n RA: ', RA(klm, flm_des, tgef01, tgef10, Dtheta, Dphi, thetap2, phip1, ratioI), '\n\n')
 
     return Dphi, Dtheta, thetap1, thetap2, phip1, phip2, ratioI
 
@@ -344,10 +339,12 @@ rect3 = patches.Rectangle((phi1/dtr, theta1/dtr), phi2/dtr - phi1/dtr, theta2/dt
 ax.add_patch(rect)
 ax.add_patch(rect2)
 ax.add_patch(rect3)
-ax.scatter(phip1/dtr, np.pi/2/dtr, s=50, color='orange', zorder=5, label='Ponto 1')  # Ponto 1: círculo maior e azul
-ax.scatter(phip1/dtr, np.pi/2/dtr, s=100, color='red', zorder=4, label='Ponto 2')   # Ponto 2: círculo ainda maior e vermelho
-ax.scatter(np.pi/2/dtr, thetap2/dtr, s=50, color='orange', zorder=5, label='Ponto 1')  # Ponto 1: círculo maior e azul
-ax.scatter(np.pi/2/dtr, thetap2/dtr, s=100, color='red', zorder=4, label='Ponto 2')   # Ponto 2: círculo ainda maior e vermelho
+ax.scatter(phip1/dtr, np.pi/2/dtr, s=50, color='orange', zorder=5, label='Ponto 1')
+ax.scatter(phip1/dtr, np.pi/2/dtr, s=100, color='red', zorder=4, label='Ponto 2')
+ax.scatter(np.pi/2/dtr, thetap2/dtr, s=50, color='orange', zorder=5, label='Ponto 1')
+ax.scatter(np.pi/2/dtr, thetap2/dtr, s=100, color='red', zorder=4, label='Ponto 2')
+ax.text(phip1/dtr, (np.pi/2)/dtr - 1.3, '1', color='#006400', fontsize=12, ha='center', va='bottom')  # Número 1 em cima do ponto
+ax.text(np.pi/2/dtr - 1, thetap2/dtr, '2', color='#006400', fontsize=12, ha='right', va='center')     # Número 2 à esquerda do ponto 2
 ax.plot(np.linspace(phi1, phi2, 100)/dtr, np.array([np.pi/2] * 100)/dtr, dashes=[4, 4], zorder=3)
 ax.plot(np.array([np.pi/2] * 100)/dtr, np.linspace(theta1, theta2, 100)/dtr, dashes=[4, 4], zorder=3)
 ax.set_title('Geometria do patch')
@@ -366,13 +363,13 @@ out_file = os.path.join(out_dir, 'CP_2P_Param.txt')
 os.makedirs(out_dir, exist_ok=True)
 with open(out_file, 'w') as f:
     f.write(parametros)
-print(f"Arquivo salvo em {out_file}")
+if show:
+    print(f"Arquivo salvo em {out_file}")
 
 fig.savefig(os.path.join(output_folder, 'figure_CP2.eps'), format='eps')
 fig.savefig(os.path.join(output_folder, 'figure_CP2.png'))
 fim_total = time.time()
-if show:
-    print("Tempo total para o fim do código: ", fim_total - inicio_total, "segundos\n")
+print("Tempo total para o fim do código: ", fim_total - inicio_total, "segundos\n")
 
 if show:
     plt.show()

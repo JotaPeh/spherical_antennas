@@ -8,21 +8,19 @@ import matplotlib.patches as patches
 from functools import partial
 import time
 import warnings
-import plotly.graph_objects as go
-import pandas as pd
 import os
 
 inicio_total = time.time()
-show = 0
 test = 0
 project = 0
+show = 0
 
 # Constantes gerais
 dtr = np.pi/180         # Graus para radianos (rad/°)
 e0 = 8.854e-12          # (F/m)
 u0 = np.pi*4e-7         # (H/m)
 c = 1/np.sqrt(e0*u0)    # Velocidade da luz no vácuo (m/s)
-gamma = 0.5772156649015328606065120900824024310421 # Constante de Euler-Mascheroni
+gamma = 0.577216        # Constante de Euler-Mascheroni
 eps = 1e-5              # Limite para o erro numérico
 
 # Geometria da cavidade
@@ -44,8 +42,6 @@ es = e0 * er            # Permissividade do substrato dielétrico (F/m)
 tgdel = 0.0022          # Tangente de perdas
 sigma = 5.8e50          # Condutividade elétrica dos condutores (S/m)
 Z0 = 50                 # Impedância intrínseca (ohm)
-
-# Dphip = np.exp(1.5)*df/(2*a*np.sin(95.65869673565197 * dtr))
 
 output_folder = 'Resultados/Sintese_CP'
 os.makedirs(output_folder, exist_ok=True)
@@ -86,6 +82,7 @@ def DQ(theta, l, u):
         return l*legQ(z, l, u)/np.tan(theta) - (l+u) * legQ(z, l-1, u) / np.sin(theta)
 
 #########################################################################################################################################################
+# Funções auxiliares de busca de raízes
 def EquationCircTheta(Dtheta, Dphi, m, K):
     theta1, theta2 = np.pi/2 - Dtheta/2, np.pi/2 + Dtheta/2
     Lamb = (np.sqrt(1+4*a_bar**2 * K**2)-1)/2
@@ -126,10 +123,12 @@ def Phi_find(K, Dtheta):
 
         return np.array(roots)
 
-#########################################################################################################################################################
 if test:
-    show = 1
+    #########################################################################################################################################################
+    # Testes das funções de busca de raízes
     flm_des = 1575.42e6 # Hz, Banda L1
+
+    show = 1
     Klm = 2*np.pi*flm_des*np.sqrt(u0*es)
 
     # Encontrar comprimento em Theta: Modo 1, 0
@@ -138,7 +137,7 @@ if test:
         print('Comprimentos em Theta (em graus):')
         print(rootsTheta / dtr)
         print('\nMeio comprimento de onda e Comprimento do patch em Theta no Equador:')
-        print(c/(2 * flm_des * np.sqrt(er)), b*rootsTheta[0]-2*b*h/a,'\n\n')
+        print(c/(2 * flm_des * np.sqrt(er)), b*rootsTheta[0],'\n\n')
 
     # Encontrar comprimento em Phi: Modo 0, 1
     rootsPhi = Phi_find(Klm, rootsTheta[0])
@@ -146,10 +145,10 @@ if test:
         print('Comprimentos em Phi (em graus):')
         print(rootsPhi / dtr)
         print('\nMeio comprimento de onda e Comprimento do patch em Phi:')
-        print(c/(2 * flm_des * np.sqrt(er)), b*rootsPhi[-1]-2*b*h/a)
+        print(c/(2 * flm_des * np.sqrt(er)), b*rootsPhi[-1])
 
     if show:
-        print('\nDimensões: ', rootsTheta[0]/dtr, '° e ', rootsPhi[-1]/dtr, '°')
+        print('\n\nDimensões: ', rootsTheta[0]/dtr, '° e ', rootsPhi[-1]/dtr, '°')
     theta1c, theta2c = np.pi/2 - rootsTheta[0]/2, np.pi/2 + rootsTheta[0]/2
     phi1c, phi2c = np.pi/2 - rootsPhi[-1]/2, np.pi/2 + rootsPhi[-1]/2
 
@@ -157,8 +156,6 @@ if test:
     rootsLambda = []
 
     def Equation(l, theta1f, theta2f, m):
-        print('Equation',l, theta1f, theta2f, m)
-        exit()
         u = m * np.pi / (phi2c - phi1c)
         return np.where(np.abs(np.cos(theta1f)) < 1 and np.abs(np.cos(theta2f)) < 1, DP(theta1f,l,u)*DQ(theta2f,l,u)-DQ(theta1f,l,u)*DP(theta2f,l,u) , 1)
 
@@ -179,28 +176,27 @@ if test:
             for r in roots:
                 if r < m * np.pi / (phi2c - phi1c) - 1 + eps and round(r, 5) != 0:
                     k += 1
-            # if show:
-            #     print("m =", m, ":", [round(r, 5) for r in roots[k:k+5]], ', mu =', m * np.pi / (phi2c - phi1c), "\n\n")
             rootsLambda.append(roots[k:k+5])
 
-    if show:
-        print('\n\n\nRaízes lambda:')
+    # Raízes lambda
     for m in range(0,5):
         root_find(m)
 
     flms = []
     if show:
-        print('\nFrequências:')
+        print('\n\nFrequências:')
     for r in rootsLambda:
         flms.append([round(p,5) for p in 1e-9*np.sqrt([x*(x + 1) for x in r])/(2*np.pi*a_bar*np.sqrt(er*e0*u0))])
         if show:
             print([round(p,5) for p in 1e-9*np.sqrt([x*(x + 1) for x in r])/(2*np.pi*a_bar*np.sqrt(er*e0*u0))])
 
 else:
+    #########################################################################################################################################################
     # Projeto iterativo
     flm_des = 1575.42e6 # Banda L1
-    Kdes = 2*np.pi*flm_des*np.sqrt(u0*e0)
     l = m = 35 # m <= l
+
+    Kdes = 2*np.pi*flm_des*np.sqrt(u0*e0)
     Ml, Mm = np.meshgrid(np.arange(0,l+1), np.arange(0,m+1))
     delm = np.ones(m+1)
     delm[0] = 0.5
@@ -309,9 +305,6 @@ else:
 
             Q01 = (np.pi / 24) * klm * np.sqrt(er) * (b**3 - a**3) * I01 * Dphi / (np.abs(R(np.cos((theta1c+theta2c)/2),L01,M01,theta1c))**2 * np.sum(S01))
             return tgdel + 1/Qc + 1/Q01
-        else:
-            print('Modo não permitido')
-            exit()
 
     def S(Kdes, Dtheta, Dphi):
         theta1c, theta2c = np.pi/2 - Dtheta/2, np.pi/2 + Dtheta/2
@@ -347,7 +340,7 @@ else:
         L01, M01 = (np.sqrt(1+4*a_bar**2 * k01**2)-1)/2, np.pi/Dphi
         L10, M10 = (np.sqrt(1+4*a_bar**2 * k10**2)-1)/2, 0
         theta1c, theta2c = np.pi/2 - Dtheta/2, np.pi/2 + Dtheta/2
-        phi1c, phi2c = np.pi/2 - Dphi/2, np.pi/2 + Dphi/2
+        phi1c = np.pi/2 - Dphi/2
         theta1, theta2 = theta1c + deltatheta1, theta2c - deltatheta2
 
         I01 = spi.quad(partial(R2, l = L01, m = M01, theta1c = theta1c),np.cos(theta2c),np.cos(theta1c))[0]
@@ -375,7 +368,7 @@ else:
 
         return (R(np.cos(thetap),L10,M10,theta1c) / (R(np.cos(thetap),L01,M01,theta1c) * np.cos(M01*(phip - phi1c)) * np.sinc(M01*Dphip/(2*np.pi)))) * V
     
-    # Início
+    # Início do Projeto
     def imZin(p, Analysis = 0):
         k01 = k10 = 2*np.pi*flm_des*np.sqrt(u0*es)
         Dtheta = Theta_find(k10)[0]
@@ -394,7 +387,7 @@ else:
             k01prev = k01
             k10prev = k10
 
-            # Supondo k01 > k10
+            # Supondo-se k01 > k10
             k10 = kl - (-1/np.tan(phaseK) + np.sqrt((1/np.tan(phaseK))**2 + 4*(1-p)*p) ) * kll / (2*(1-p))
             k01 = kl + (-1/np.tan(phaseK) + np.sqrt((1/np.tan(phaseK))**2 + 4*(1-p)*p) ) * kll / (2*p)
             
@@ -424,6 +417,7 @@ else:
         Zin = Z(flm_des, k01, k10, thetap, Phtheta(thetap), tgef, Dtheta, Dphi)
 
         if  Analysis:
+            # Representações gráficas auxiliares do patch e do lugar geométrico projetados
             fig, ax = plt.subplots()
             rect = patches.Rectangle((phi1c/dtr, theta1c/dtr), phi2c/dtr - phi1c/dtr, theta2c/dtr - theta1c/dtr, color='#B87333', zorder=0)
             ax.add_patch(rect)
@@ -436,7 +430,6 @@ else:
             ax.set_xlim(phi1c/dtr - h/(a*dtr), phi2c/dtr + h/(a*dtr))
             ax.set_ylim(theta1c/dtr - h/(a*dtr), theta2c/dtr + h/(a*dtr))
             plt.gca().invert_yaxis()
-            # plt.show()
             figures.append(fig)
 
             fig = plt.figure(figsize=(8, 8))
@@ -470,7 +463,6 @@ else:
             ax.set_xlabel('X')
             ax.set_ylabel('Y')
             ax.set_zlabel('Z')
-            # plt.show()
             figures.append(fig)
             
             Zinth = Z(flm_des, k01, k10, Th, Ph, tgef, Dtheta, Dphi)
@@ -483,7 +475,6 @@ else:
             plt.ylabel('Impedância '+r'($\Omega$)')
             plt.legend()
             plt.grid(True)
-            # plt.show()
             figures.append(fig)
 
             axial =  RA(k01, k10, kl-1j*kll, Dtheta, Dphi, thetap, Phtheta(thetap))
@@ -492,7 +483,8 @@ else:
                 print('Razão axial: ', axial, ' Módulo:', np.abs(axial),' Módulo (dB):', np.abs(20*np.log10(np.abs(axial))), 'Fase: ', np.angle(axial)/dtr, '\n')
 
             return Dphi, Dtheta, thetap, Phtheta(thetap), Zin
-        print(p, np.imag(Zin), '\n')
+        if show and not project:
+            print(p, np.imag(Zin), '\n')
         return np.imag(Zin)
 
     if project:
@@ -503,13 +495,15 @@ else:
             root = root_scalar(Wrapper, bracket=[0.5, 0.7], method='bisect', xtol = 1e-4)
             print('Convergência após ', root.iterations, ' passos\n')
             Dphi, Dtheta, thetap, phip, Zin = imZin(np.array(root.root), Analysis = 1)
+            print('Dphi, Dtheta, thetap, phip, Zin: ')
             print(Dphi/dtr, Dtheta/dtr, thetap/dtr, phip/dtr, Zin)
         fim_projeto = time.time()
-        print("Tempo de projeto: ", fim_projeto-inicio_projeto,' s \n')
+        print("\nTempo de projeto: ", fim_projeto-inicio_projeto,' s \n')
         p = np.array(root.root)
         print('p = ', p, '\n')
     else:
-        p = 0.5891601562500001
+        p = 0.5891601562500001 # Resultado do projeto
+
         Dphi, Dtheta, thetap, phip, Zin = imZin(p, Analysis = 1)
 
         theta1c, theta2c = np.pi/2 - Dtheta/2, np.pi/2 + Dtheta/2
@@ -530,8 +524,8 @@ else:
         ax.add_patch(rect)
         ax.add_patch(rect2)
         ax.add_patch(rect3)
-        ax.scatter(phip/dtr, thetap/dtr, s=50, color='orange', zorder=5, label='Ponto 1')  # Ponto 1: círculo maior e azul
-        ax.scatter(phip/dtr, thetap/dtr, s=100, color='red', zorder=4, label='Ponto 2')   # Ponto 2: círculo ainda maior e vermelho
+        ax.scatter(phip/dtr, thetap/dtr, s=50, color='orange', zorder=5, label='Ponto 1')
+        ax.scatter(phip/dtr, thetap/dtr, s=100, color='red', zorder=4, label='Ponto 2')
         ax.plot(np.linspace(phi1, phi2, 100)/dtr, np.linspace(theta1, theta2, 100)/dtr, dashes=[4, 4], zorder=3)
         ax.set_title('Geometria do patch')
         ax.grid(False)
@@ -541,7 +535,6 @@ else:
         plt.ylabel(r'$\theta$'+' (°)' )
         plt.xlabel(r'$\varphi$'+' (°)' )
         plt.gca().invert_yaxis()
-        # plt.show()
         figures.append(fig)
 
     # Exportar resultado; dtc e dpc em graus
@@ -551,14 +544,15 @@ else:
     os.makedirs(out_dir, exist_ok=True)
     with open(out_file, 'w') as f:
         f.write(parametros)
-    print(f"Arquivo salvo em {out_file}")
+    if show:
+        print(f"Arquivo salvo em {out_file}")
 
-for i, fig in enumerate(figures):
-    fig.savefig(os.path.join(output_folder, f'figure_{i+1}.eps'), format='eps')
-    fig.savefig(os.path.join(output_folder, f'figure_{i+1}.png'))
+    for i, fig in enumerate(figures):
+        fig.savefig(os.path.join(output_folder, f'figure_{i+1}.eps'), format='eps')
+        fig.savefig(os.path.join(output_folder, f'figure_{i+1}.png'))
+    
 fim_total = time.time()
-if show:
-    print("Tempo total para o fim do código: ", fim_total - inicio_total, "segundos\n\n")
+print("\n\nTempo total para o fim do código: ", fim_total - inicio_total, "segundos\n\n")
 
 if show:
     plt.show()

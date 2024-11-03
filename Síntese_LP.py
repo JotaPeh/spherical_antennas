@@ -1,27 +1,23 @@
 from scipy import special as sp
 from scipy.optimize import root_scalar
 from scipy import integrate as spi
-from scipy.interpolate import interp1d
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from functools import partial
 import time
 import warnings
-import plotly.graph_objects as go
-import pandas as pd
 import os
 
 inicio_total = time.time()
 show = 0
-test = 0
 
 # Constantes gerais
 dtr = np.pi/180         # Graus para radianos (rad/°)
 e0 = 8.854e-12          # (F/m)
 u0 = np.pi*4e-7         # (H/m)
 c = 1/np.sqrt(e0*u0)    # Velocidade da luz no vácuo (m/s)
-gamma = 0.5772156649015328606065120900824024310421 # Constante de Euler-Mascheroni
+gamma = 0.577216        # Constante de Euler-Mascheroni
 eps = 1e-5              # Limite para o erro numérico
 
 # Geometria da cavidade
@@ -82,6 +78,7 @@ def DQ(theta, l, u):
         return l*legQ(z, l, u)/np.tan(theta) - (l+u) * legQ(z, l-1, u) / np.sin(theta)
 
 #########################################################################################################################################################
+# Funções auxiliares de busca de raízes
 def EquationCircTheta(Dtheta, Dphi, m, K):
     theta1, theta2 = np.pi/2 - Dtheta/2, np.pi/2 + Dtheta/2
     Lamb = (np.sqrt(1+4*a_bar**2 * K**2)-1)/2
@@ -147,16 +144,15 @@ def root_find(m, theta1c, theta2c, phi1c, phi2c):
         for r in roots:
             if r < m * np.pi / (phi2c - phi1c) - 1 + eps and round(r, 5) != 0:
                 k += 1
-        # if show:
-            # print("m =", m, ":", [round(r, 5) for r in roots[k:k+5]], ', mu =', m * np.pi / (phi2c - phi1c), "\n\n")
         rootsLambda.append(roots[k:k+5])
     return rootsLambda
 
 #########################################################################################################################################################
 # Projeto iterativo
 flm_des = 1575.42e6 # Banda L1
-Kdes = 2*np.pi*flm_des*np.sqrt(u0*es)
 modo = '10' # '10' ou '01'
+
+Kdes = 2*np.pi*flm_des*np.sqrt(u0*es)
 
 def RLC(f, Kex, L, U, thetap, phip, Dphip, tgef, Dtheta, Dphi):
     theta1c, theta2c = np.pi/2 - Dtheta/2, np.pi/2 + Dtheta/2
@@ -274,9 +270,8 @@ def plotZ(klm, thetap, phip, Dtheta, Dphi, m_mode):
     plt.title('Impedância')
     plt.legend()
     plt.grid(True)
-    # plt.show()
 
-# Início
+# Início do Projeto
 def LinProj(Analysis = 0, mode = '10'):
     if mode != 0 and mode != 1 and mode != 10 and mode != '10' and mode != '01'  :
         print('Modo Inválido!')
@@ -290,7 +285,7 @@ def LinProj(Analysis = 0, mode = '10'):
         Dtheta = Theta_find(klm)[0]
         Dphi = 1.3*Dtheta
     elif m_mode == 1:
-        Dphi = Phi_find(klm)[-4] # Cuidado!
+        Dphi = Phi_find(klm)[-4] # Cuidado! O -4 não é validado em geral, carece de mais testes e seleção de raízes corretas
         Dtheta = 1.3*Dphi
 
     epsilon = 1
@@ -334,10 +329,11 @@ def LinProj(Analysis = 0, mode = '10'):
         epsilon = np.abs(np.max([np.imag(Zin),np.real(Zin)-50.0]))
 
     fim_tot = time.time()
-    print('Frequência final: ', np.sqrt(lbd*(lbd+1))/(2*np.pi*a_bar*np.sqrt(er*e0*u0))/1e6)
     plotZ(klm, thetap, phip, Dtheta, Dphi, m_mode)
-    print("Quantidade de passos para a convergência: ", steps, '\n')
-    print('Tempo decorrido: ', fim_tot-inicio_total, 'segundos.')
+    if show:
+        print('Frequência final: ', np.sqrt(lbd*(lbd+1))/(2*np.pi*a_bar*np.sqrt(er*e0*u0))/1e6)
+        print("Quantidade de passos para a convergência: ", steps, '\n')
+        print('Tempo decorrido: ', fim_tot-inicio_total, 'segundos.')
     
     if  Analysis:
         if m_mode == 0:
@@ -357,7 +353,6 @@ def LinProj(Analysis = 0, mode = '10'):
         ax.set_xlim(phi1c/dtr - h/(a*dtr), phi2c/dtr + h/(a*dtr))
         ax.set_ylim(theta1c/dtr - h/(a*dtr), theta2c/dtr + h/(a*dtr))
         plt.gca().invert_yaxis()
-        # plt.show()
 
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -390,7 +385,6 @@ def LinProj(Analysis = 0, mode = '10'):
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        # plt.show()
 
         plt.figure()
         if m_mode == 0:
@@ -407,7 +401,6 @@ def LinProj(Analysis = 0, mode = '10'):
             plt.xlabel('Ângulo '+r'$\varphi$'+' (°)')
         plt.title('Impedância')
         plt.grid(True)
-        # plt.show()
 
     return Dphi, Dtheta, thetap, phip, Zin
 
@@ -421,19 +414,21 @@ out_file = os.path.join(out_dir, 'LP_'+modo+'_Param.txt')
 os.makedirs(out_dir, exist_ok=True)
 with open(out_file, 'w') as f:
     f.write(parametros)
-print(f"Arquivo salvo em {out_file}")
+if show:
+    print(f"Arquivo salvo em {out_file}")
 
-print('\n' + 'Delta Theta'+' e '+'Delta Phi'+' são, respectivamente, ', Dtheta/dtr, ' e ', Dphi/dtr, '\n')
+    print('\n' + 'Delta Theta'+' e '+'Delta Phi'+' são, respectivamente, ', Dtheta/dtr, ' e ', Dphi/dtr, '\n')
 
 theta1c, theta2c = np.pi/2 - Dtheta/2, np.pi/2 + Dtheta/2
 phi1c, phi2c = np.pi/2 - Dphi/2, np.pi/2 + Dphi/2
 theta1, theta2 = theta1c + deltatheta1, theta2c - deltatheta2
 phi1, phi2 = phi1c + deltaPhi, phi2c - deltaPhi
 
-print('theta1c, theta2c, phi1c, phi2c, thetap, phip, Zin: ')
-print(theta1c/dtr, theta2c/dtr, phi1c/dtr, phi2c/dtr, thetap/dtr, phip/dtr, Zin, '\n')
-print('theta1, theta2, phi1, phi2: ')
-print(theta1/dtr,theta2/dtr,phi1/dtr,phi2/dtr, '\n')
+if show:
+    print('theta1c, theta2c, phi1c, phi2c, thetap, phip, Zin: ')
+    print(theta1c/dtr, theta2c/dtr, phi1c/dtr, phi2c/dtr, thetap/dtr, phip/dtr, Zin, '\n')
+    print('theta1, theta2, phi1, phi2: ')
+    print(theta1/dtr,theta2/dtr,phi1/dtr,phi2/dtr, '\n')
 
 fig, ax = plt.subplots()
 if int(modo) % 10 == 0:
@@ -446,8 +441,8 @@ if int(modo) % 10 == 1:
     ax.plot(np.linspace(phi1, phi2, 100)/dtr, np.array([thetap] * 100)/dtr, dashes=[4, 4], zorder=3)
 rect3 = patches.Rectangle((phi1/dtr, theta1/dtr), phi2/dtr - phi1/dtr, theta2/dtr - theta1/dtr, color='#B87333', zorder=2)
 ax.add_patch(rect3)
-ax.scatter(phip/dtr, thetap/dtr, s=50, color='orange', zorder=5, label='Ponto 1')  # Ponto 1: círculo maior e azul
-ax.scatter(phip/dtr, thetap/dtr, s=100, color='red', zorder=4, label='Ponto 2')   # Ponto 2: círculo ainda maior e vermelho
+ax.scatter(phip/dtr, thetap/dtr, s=50, color='orange', zorder=5, label='Ponto 1')
+ax.scatter(phip/dtr, thetap/dtr, s=100, color='red', zorder=4, label='Ponto 2')
 ax.set_title('Geometria do patch')
 ax.grid(False)
 ax.set_xlim(phi1c/dtr - 5*h/(a*dtr), phi2c/dtr + 5*h/(a*dtr))

@@ -1,11 +1,6 @@
-from scipy import special as sp
-from scipy.optimize import root_scalar
-from scipy import integrate as spi
 import numpy as np
 import matplotlib.pyplot as plt
-from functools import partial
 import time
-import warnings
 import plotly.graph_objects as go
 import pandas as pd
 import os
@@ -18,16 +13,13 @@ show = 0
 parametros = {line.split(' = ')[0]: float(line.split(' = ')[1]) for line in open('Resultados/Param/' + filein + '.txt')}
 Dthetaa, Dphia, thetap, phip, alphac, At, flm_des = [parametros[key] for key in ['Dthetaa', 'Dphia', 'thetap', 'phip', 'alphac', 'At', 'f']]
 
-# flm_des = 1575.42e6
-
 # Constantes gerais
 dtr = np.pi/180         # Graus para radianos (rad/°)
 e0 = 8.854e-12          # (F/m)
 u0 = np.pi*4e-7         # (H/m)
 c = 1/np.sqrt(e0*u0)    # Velocidade da luz no vácuo (m/s)
-gamma = 0.5772156649015328606065120900824024310421 # Constante de Euler-Mascheroni
+gamma = 0.577216        # Constante de Euler-Mascheroni
 eps = 1e-5              # Limite para o erro numérico
-# p = 0.5891601562500001  # Razão entre os modos
 
 dtc = 0 * dtr
 dpc = 0 * dtr
@@ -41,19 +33,6 @@ theta1 = np.pi/2 - Dthetaa/2 + dtc      # Ângulo de elevação 1 da cavidade (r
 theta2 = np.pi/2 + Dthetaa/2 + dtc      # Ângulo de elevação 2 da cavidade (rad)
 phi1 = np.pi/2 - Dphia/2 + dpc          # Ângulo de azimutal 1 da cavidade (rad)
 phi2 = np.pi/2 + Dphia/2 + dpc          # Ângulo de azimutal 2 da cavidade (rad)
-
-# theta1c = 72.76294499082795 * dtr + dtc      # Ângulo de elevação 1 da cavidade (rad)
-# theta2c = 107.237055009172054 * dtr + dtc     # Ângulo de elevação 2 da cavidade (rad)
-# phi1c = 72.8975672678347 * dtr + dpc        # Ângulo de azimutal 1 da cavidade (rad)
-# phi2c = 107.1024327321653 * dtr + dpc       # Ângulo de azimutal 2 da cavidade (rad)
-
-# Dtheta = theta2c - theta1c
-# Dphi = phi2c - phi1c
-# deltatheta1 = h/a       # Largura angular 1 do campo de franjas e da abertura polar (rad)
-# deltatheta2 = h/a       # Largura angular 2 do campo de franjas e da abertura polar (rad)
-# theta1, theta2 = theta1c + deltatheta1, theta2c - deltatheta2 # Ângulos polares físicos do patch (rad)
-# deltaPhi = h/a          # Largura angular do campo de franjas e da abertura azimutal (rad)
-# phi1, phi2 = phi1c + deltaPhi, phi2c - deltaPhi             # Ângulos azimutais físicos do patch (rad)
 
 # Coordenadas dos alimentadores coaxiais (rad)
 thetap = [thetap]  
@@ -82,7 +61,7 @@ def Geotruc():
     alphaa = np.arccos(-np.sin(theta1)**2*np.cos(2*phi1)-np.cos(theta1)**2)
     alphat = alphaa-alphac
 
-    print('alphay, alphaa, alphat: ', alphay/dtr, alphaa/dtr, alphat/dtr)
+    print('\n\nalphay, alphaa, alphat: ', alphay/dtr, alphaa/dtr, alphat/dtr)
 
     # Interseção com a lateral: 
     ul = -b/np.sqrt(1+np.tan((np.pi+alphat)/2)**2+((np.tan((np.pi+alphat)/2)/np.tan(phi2)-np.cos(alphay))/np.sin(alphay))**2)
@@ -90,7 +69,7 @@ def Geotruc():
 
     Dthetat = np.arccos((P2[0]*(ul*np.cos(alphay)+vl*np.sin(alphay)) + P2[1]*(ul*np.tan((np.pi+alphat)/2)) + P2[2]*(vl*np.cos(alphay)-ul*np.sin(alphay)))/b**2)
 
-    print('Dthetat: ', Dthetat/dtr, alphac*np.sin(alphay)/dtr)
+    print('Dthetat (analítico/aproximado): ', Dthetat/dtr, alphac*np.sin(alphay)/dtr)
 
     # Interseção com lado superior:
     ur = symbols('ur')
@@ -111,8 +90,8 @@ def Geotruc():
     Agirard = (Dphit+beta+gama-np.pi) * b**2
     At = Agirard-Aint
 
-    print('Dphit: ', Dphit/dtr, alphac*np.cos(alphay)/np.sin(theta1)/dtr)
-    print('Área (mm²): ', At*1e6, b**2 * Dphit * np.cos((Dthetaa-Dthetat)/2) * np.sin(Dphit/2)*1e6, '\n')
+    print('Dphit (analítico/aproximado): ', Dphit/dtr, alphac*np.cos(alphay)/np.sin(theta1)/dtr)
+    print('Área (mm²) (analítica/aproximada): ', At*1e6, b**2 * Dphit * np.cos((Dthetaa-Dthetat)/2) * np.sin(Dphit/2)*1e6, '\n')
 
 if show:
     Geotruc()
@@ -136,7 +115,6 @@ plt.xlabel('Frequência (GHz)')
 plt.ylabel(r'Impedância ($\Omega$)')
 plt.legend()
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 # Carta de Smith
@@ -155,7 +133,6 @@ plt.ylabel(r'$|s_{11}|$' + ' (dB)')
 plt.title('Coeficiente de reflexão (' + r'$|\Gamma_{in}|$' + ')')
 plt.legend(loc='lower right')
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 
@@ -173,7 +150,6 @@ def plotRA():
     plt.ylabel('Razão Axial (dB)')
     plt.title('Razão Axial na Simulação')
     plt.grid(True)
-    # plt.show()
     figures.append(fig)
 
     data_hfss = pd.read_csv(path+'Axial Ratio Plot Phi90.csv')
@@ -188,7 +164,6 @@ def plotRA():
     plt.ylabel('Razão Axial (dB)')
     plt.title('Razão Axial')
     plt.grid(True)
-    # plt.show()
     figures.append(fig)
 
     data_hfss = pd.read_csv(path + 'Axial Ratio Plot Theta90.csv')
@@ -203,7 +178,6 @@ def plotRA():
     plt.ylabel('Razão Axial (dB)')
     plt.title('Razão Axial')
     plt.grid(True)
-    # plt.show()
     figures.append(fig)
 
 plotRA()
@@ -234,7 +208,7 @@ gainPh_T -= np.max(gainPh_T)
 gainPh_P = dataPh['dB(GainPhi) [] - Freq=\'1.575GHz\' Phi=\'90.0000000000002deg\'']
 Gsim4 = np.max(gainPh_P)
 if show:
-    print('Ganhos em cada direção: ', Gsim1, Gsim2, Gsim3, Gsim4)
+    print('Ganhos em cada componente (Ephi/Etheta):', Gsim1, Gsim2, '\n\n')
 gainPh_P -= np.max(gainPh_P)
 
 # Plotar o primeiro gráfico
@@ -281,13 +255,10 @@ axs[1, 1].set_rlabel_position(45)
 
 handles, figlabels = axs[0, 1].get_legend_handles_labels()
 fig.legend(handles, figlabels, loc='lower center', ncol=1)
-
 plt.tight_layout()
-# plt.show()
 figures.append(fig)
 
 # Campos RHCP e LHCP
-inicio = time.time()
 angulos = np.arange(0,360,1) * dtr + eps
 
 fig, axs = plt.subplots(2, 2, figsize=(8, 8), subplot_kw={'projection': 'polar'})
@@ -296,16 +267,16 @@ dataTh = pd.read_csv(path+'Gain Plot HCP theta.csv')
 angTh = dataTh['Phi [deg]'] * dtr + eps
 gainTh_T = dataTh['dB(GainRHCP) [] - Freq=\'1.575GHz\' Theta=\'90.0000000000002deg\'']
 G_RHCP = np.max(gainTh_T)
-gainTh_T -= G_RHCP#np.max(gainTh_T)
+gainTh_T -= G_RHCP
 gainTh_P = dataTh['dB(GainLHCP) [] - Freq=\'1.575GHz\' Theta=\'90.0000000000002deg\'']
 G_LHCP = np.max(gainTh_P)
-gainTh_P -= G_RHCP#np.max(gainTh_P)
+gainTh_P -= G_RHCP
 dataPh = pd.read_csv(path+'Gain Plot HCP phi.csv')
 angPh = dataPh['Theta [deg]'] * dtr + eps
 gainPh_T = dataPh['dB(GainRHCP) [] - Freq=\'1.575GHz\' Phi=\'90.0000000000002deg\'']
-gainPh_T -= G_RHCP#np.max(gainPh_T)
+gainPh_T -= G_RHCP
 gainPh_P = dataPh['dB(GainLHCP) [] - Freq=\'1.575GHz\' Phi=\'90.0000000000002deg\'']
-gainPh_P -= G_RHCP#np.max(gainPh_P)
+gainPh_P -= G_RHCP
 gTest = np.max(gainPh_P)
 
 # Plotar o primeiro gráfico
@@ -352,13 +323,10 @@ axs[1, 1].set_rlabel_position(45)
 
 handles, figlabels = axs[0, 1].get_legend_handles_labels()
 fig.legend(handles, figlabels, loc='lower center', ncol=1)
-
 plt.tight_layout()
-# plt.show()
 figures.append(fig)
 
-fim = time.time()
-
+# Método da antena linear girante
 normalizado = 0
 
 datakRA = pd.read_csv(path+'kRA_CP.csv')
@@ -382,7 +350,6 @@ if normalizado:
 gainPh_T = dataPh['dB(GainTheta) [] - Freq=\'1.575GHz\' Phi=\'90.0000000000002deg\''].to_numpy()
 if normalizado:
     gainPh_T -= np.max(gainPh_T)
-##################
 
 datakRA = pd.read_csv(path+'kRA_CP.csv')
 datakRA = datakRA[datakRA['Theta[deg]'] == 90]
@@ -399,7 +366,6 @@ if normalizado:
     Eg_hfss_Th -= np.max(Eg_hfss_Th)-corr
     gainTh_P -= np.max(gainTh_P)
 
-
 gainTh_T = dataTh['dB(GainTheta) [] - Freq=\'1.575GHz\' Theta=\'90.0000000000002deg\''].to_numpy()
 if normalizado:
     gainTh_T -= np.max(gainTh_T)
@@ -407,9 +373,6 @@ if normalizado:
 angulos = np.arange(0,360,1) * dtr + eps
 fig, axs = plt.subplots(1, 2, figsize=(10, 5), subplot_kw={'projection': 'polar'})
 
-# axs[0].plot(angulos, E_GIR(angulos, (phi1c + phi2c) / 2 + eps), label = 'Spinning Pattern')
-# axs[0].plot(angulos, E_v(angulos, (phi1c + phi2c) / 2 + eps), label = r'$E_\theta^V(\theta,\varphi)$')
-# axs[0].plot(angulos, E_h(angulos, (phi1c + phi2c) / 2 + eps), label = r'$E_\varphi^H(\theta,\varphi)$')
 axs[0].plot(angPh, gainPh_P, label = r'$E_\varphi^H(\theta,\varphi)$')
 axs[0].plot(angPh, gainPh_T, label = r'$E_\theta^V(\theta,\varphi)$')
 axs[0].plot(angPh, Eg_hfss_Ph, color='red', label = 'Simulação')
@@ -421,10 +384,7 @@ axs[0].set_rlim(-30,corr)
 axs[0].set_thetagrids(angles, labels=angles_labels)
 axs[0].set_rlabel_position(45)
 
-# axs[1].plot(angulos, E_GIR((theta1c + theta2c) / 2 + eps, angulos), label = 'Spinning Pattern')
-# axs[1].plot(angulos, E_v((theta1c + theta2c) / 2 + eps, angulos), label = r'$E_\theta^V(\theta,\varphi)$')
 axs[1].plot(angTh, gainTh_P, label = r'$E_\theta^V(\theta,\varphi)$')
-# axs[1].plot(angulos, E_h((theta1c + theta2c) / 2 + eps, angulos), label = r'$E_\varphi^H(\theta,\varphi)$')
 axs[1].plot(angTh, gainTh_T, label = r'$E_\varphi^H(\theta,\varphi)$')
 axs[1].plot(angTh, Eg_hfss_Th, color='red', label = 'Simulação')
 axs[1].set_xlabel('Ângulo ' + r'$\varphi$' + ' para ' + r'$\theta = \frac{\theta_{1c}+\theta_{2c}}{2}$')
@@ -439,10 +399,7 @@ fig.suptitle('Método da antena linear girante')
 handles, figlabels = axs[0].get_legend_handles_labels()
 fig.legend(handles, figlabels, loc='lower center', ncol=1)
 figures.append(fig)
-
 plt.tight_layout()
-# plt.show()
-
 
 # Salvamento das figuras
 for i, fig in enumerate(figures):

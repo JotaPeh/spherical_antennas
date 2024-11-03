@@ -9,10 +9,9 @@ import warnings
 import plotly.graph_objects as go
 import pandas as pd
 import os
-# Tive que fazer pip install -U kaleido para salvar imagens
 
 inicio_total = time.time()
-show = 1
+show = 0
 L, M = 2, 2             # Modo em teste
 
 # Constantes gerais
@@ -20,7 +19,7 @@ dtr = np.pi/180         # Graus para radianos (rad/°)
 e0 = 8.854e-12          # (F/m)
 u0 = np.pi*4e-7         # (H/m)
 c = 1/np.sqrt(e0*u0)    # Velocidade da luz no vácuo (m/s)
-gamma = 0.5772156649015328606065120900824024310421 # Constante de Euler-Mascheroni
+gamma = 0.577216        # Constante de Euler-Mascheroni
 eps = 1e-5              # Limite para o erro numérico
 
 dtc = 0 * dtr
@@ -94,7 +93,7 @@ def DQ(theta, l, m):
 def Equation(l, theta1f, theta2f, m):
     return np.where(np.abs(np.cos(theta1f)) < 1 and np.abs(np.cos(theta2f)) < 1, DP(theta1f,l,m)*DQ(theta2f,l,m)-DQ(theta1f,l,m)*DP(theta2f,l,m) , 1)
 
-Lambda = np.linspace(-0.1, 32, 64) # Domínio de busca, o professor usou a janela de 0.1
+Lambda = np.linspace(-0.1, 32, 64) # Domínio de busca
 rootsLambda = []
 
 def root_find(n):
@@ -110,7 +109,6 @@ def root_find(n):
     # Remoção de raízes inválidas
     k = 0
     for r in roots:
-        # if round(r-roots[0], 6) % 1 == 0 and n != 0:
         if r < n * np.pi / (phi2c - phi1c) - 1 + eps and round(r, 5) != 0:
             k += 1
     if show:
@@ -134,7 +132,6 @@ plt.title('Equação da condição de contorno')
 plt.ylabel(r'$\chi_{\mu}(\lambda)$')
 plt.xlabel(r'$\lambda$')
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 # Raízes inválidas
@@ -152,7 +149,6 @@ plt.title('Raízes inválidas da equação de contorno')
 plt.ylabel(r'$\chi_{\mu}(\lambda)$')
 plt.xlabel(r'$\lambda$')
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 # Frequências de ressonância (GHz)
@@ -184,7 +180,6 @@ plt.title(r'$R^{0}_{\lambda_{10}}(x) + R^{0}_{\lambda_{10}}(-x) = 0$')
 plt.ylabel(r'$R^{0}_{\lambda_{10}}(x) + R^{0}_{\lambda_{10}}(-x)$')
 plt.xlabel(r'$x$')
 plt.grid(True)
-# plt.show()
 figures.append(fig)
     
 fig = plt.figure()
@@ -193,7 +188,6 @@ plt.title(r'$R^{0}_{\lambda_{10}}$'+': Função ímpar')
 plt.ylabel(r'$R^{0}_{\lambda_{10}}(x)$')
 plt.xlabel(r'$x$')
 plt.grid(True)
-# plt.show()
 figures.append(fig)
     
 lim = 0.9
@@ -203,7 +197,6 @@ plt.title(r'$R^{\mu_{01}}_{\lambda_{01}}$'+': Função par')
 plt.ylabel(r'$R^{\mu_{01}}_{\lambda_{01}}(x)$')
 plt.xlabel(r'$x$')
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 phi = np.linspace(phi1c, phi2c, 200)           # Domínio de phi (rad)
@@ -226,7 +219,6 @@ plt.colorbar()
 plt.xlabel(r'$\varphi$' + ' (graus)', fontsize=14)
 plt.ylabel(r'$\theta$' + ' (graus)', fontsize=14)
 plt.title('Mapa de Amplitude (Normalizado)')
-# plt.show()
 figures.append(fig)
 
 # Mapa de Fase
@@ -236,7 +228,6 @@ plt.colorbar(label = 'Fase (grau)')
 plt.xlabel(r'$\varphi$' + ' (graus)', fontsize=14)
 plt.ylabel(r'$\theta$' + ' (graus)', fontsize=14)
 plt.title('Mapa de Fase')
-# plt.show()
 figures.append(fig)
 
 # Impedância de entrada - Circuito RLC:
@@ -244,7 +235,6 @@ def R2(v, l, m):                               # Quadrado da função auxiliar p
     return R(v, l, m)**2
 
 def tgef(L,M):
-    # Qdie = 2 * np.pi * f * es / sigma_die # + Perdas de irradiação = 1/tgdel
     Rs = np.sqrt(2 * np.pi * flm[L][M] * u0 / (2 * sigma))
     Qc = 2 * np.pi * flm[L][M] * u0 * h / (2 * Rs)
     Qc = Qc * (3*a**2 + 3*a*h + h**2) / (3*a**2 + 3*a*h + h**2 * 3/2)
@@ -273,8 +263,6 @@ def Z(f, L, M, p1, p2):
     return RLC(f, L, M, p1, p2) + 1j*Xp
 
 def Zlm(f, L, M):                              # Matriz impedância
-    # if isinstance(f, list) and len(f) > 1:     # Não usar f como vetor: usar np.vetorize
-    #     f = flm[L][M]
     Zmatrix = []
     for q in range(probes):  
         line = []
@@ -308,7 +296,6 @@ plt.xlabel('Frequência (GHz)')
 plt.ylabel('Impedância ' + r'($\Omega$)')
 plt.legend()
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 # Modo TM10 com a ponta de prova 2
@@ -324,7 +311,6 @@ plt.xlabel('Frequência (GHz)')
 plt.ylabel('Impedância ' + r'($\Omega$)')
 plt.legend()
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 # Impedâncias de entrada, considerando Iin1 = Iin2
@@ -343,7 +329,6 @@ plt.xlabel('Frequência (GHz)')
 plt.ylabel('Impedância ' + r'($\Omega$)')
 plt.legend()
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 # Dados do HFSS
@@ -353,16 +338,14 @@ re_hfss = data_hfss['re(Z(1,1)) []']
 im_hfss = data_hfss['im(Z(1,1)) []']
 
 # Carta de Smith
-fig = go.Figure()
+figSm = go.Figure()
 Zchart = Z(freqs01, 0, 1, 1, 1)/Z0 # Multiplicar fora do argumento da função abaixo
-fig.add_trace(go.Scattersmith(imag=np.imag(Zchart).tolist(), real=np.real(Zchart).tolist(), marker_color="red", name="Z(1,1)"))
+figSm.add_trace(go.Scattersmith(imag=np.imag(Zchart).tolist(), real=np.real(Zchart).tolist(), marker_color="red", name="Z(1,1)"))
 Zchart = Z(freqs10, 1, 0, 2, 2)/Z0
-fig.add_trace(go.Scattersmith(imag=np.imag(Zchart).tolist(), real=np.real(Zchart).tolist(), marker_color="green", name="Z(2,2)"))
+figSm.add_trace(go.Scattersmith(imag=np.imag(Zchart).tolist(), real=np.real(Zchart).tolist(), marker_color="green", name="Z(2,2)"))
 Zchart =(re_hfss+1j*im_hfss)/Z0
-fig.add_trace(go.Scattersmith(imag=np.imag(Zchart).tolist(), real=np.real(Zchart).tolist(), marker_color="blue", name=r"$Z_{HFSS}$"))
-if show:
-    fig.show()
-fig.write_image(output_folder+"/Smith.png")
+figSm.add_trace(go.Scattersmith(imag=np.imag(Zchart).tolist(), real=np.real(Zchart).tolist(), marker_color="blue", name=r"$Z_{HFSS}$"))
+figSm.write_image(output_folder+"/Smith.png")
 
 # Comparação de impedâncias
 fig = plt.figure()
@@ -378,7 +361,6 @@ plt.xlabel('Frequência (GHz)')
 plt.ylabel('Impedância ' + r'($\Omega$)')
 plt.legend()
 plt.grid(True)
-# plt.show()
 figures.append(fig)
 
 # Campos distantes dos modos TM01 e TM10
@@ -401,17 +383,19 @@ def IDtheta(theta, L, M):
 eps = 1e-30
 l = m = 35 # m <= l
 Ml, Mm = np.meshgrid(np.arange(0,l+1), np.arange(0,m+1))
+delm = np.ones(m+1)
+delm[0] = 0.5
+flm_des = 1575.42e6 # Hz
+
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     S_lm = (2 * Ml * (Ml+1) * sp.gamma(1+Ml+Mm)) / ((2*Ml+1) * sp.gamma(1+Ml-Mm))
     S_lm += (1-np.abs(np.sign(S_lm)))*eps
     I_th = np.array([[spi.quad(partial(Itheta, L = i, M = j), theta1 , theta2)[0] for i in range(l+1)] for j in range(m+1)])
     I_dth = np.array([[spi.quad(partial(IDtheta, L = i, M = j), theta1 , theta2)[0] for i in range(l+1)] for j in range(m+1)])
-
 def Eth_v_prot(theta, phi):
-    Eth0_A, Eth0_C = 1, 1
-    k = 2 * np.pi * flm[0][1] / c
-    print('here')
+    k = 2 * np.pi * flm_des / c
+    Eth0_A = Eth0_C = 1
     
     IdP_1 = sp.lpmn(m, l, np.cos((theta1+theta1c)/2))[1] * np.sin((theta1+theta1c)/2)**2 * -deltatheta1
     IdP_2 = sp.lpmn(m, l, np.cos((theta2+theta2c)/2))[1] * np.sin((theta2+theta2c)/2)**2 * -deltatheta2
@@ -423,19 +407,14 @@ def Eth_v_prot(theta, phi):
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ethv = ((1j ** Ml) * (b * sp.lpmn(m, l, np.cos(theta))[1] * (Eth0_A * IdP_1 + Eth0_C * IdP_2) * (-np.sin(theta))/ (dH2_dr) \
             + 1j * Mm**2 * sp.lpmn(m, l, np.cos(theta))[0] * (Eth0_A * IpP_1 + Eth0_C * IpP_2) / (k * np.sin(theta) * H2) ) * \
             (phi2-phi1) * np.sinc(Mm*(phi2-phi1)/(2*np.pi)) * np.cos(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
-        # if phi == theta and show:
-        #     print(Ethv)
-            # print(np.round(IpP_1-IpP_2,10))
-        return np.abs(np.sum(Ethv))
-        # return np.sum(Ethv) # V/m
+        return np.sum(np.dot(delm, Ethv))
         
 def Eph_v_prot(theta, phi):
-    Eth0_A, Eth0_C = 1, 1
-    k = 2 * np.pi * flm[0][1] / c
+    k = 2 * np.pi * flm_des / c
+    Eth0_A = Eth0_C = 1
 
     IdP_1 = sp.lpmn(m, l, np.cos((theta1+theta1c)/2))[1] * np.sin((theta1+theta1c)/2)**2 * -deltatheta1
     IdP_2 = sp.lpmn(m, l, np.cos((theta2+theta2c)/2))[1] * np.sin((theta2+theta2c)/2)**2 * -deltatheta2
@@ -447,75 +426,60 @@ def Eph_v_prot(theta, phi):
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ephv = ((1j ** Ml) * (b * sp.lpmn(m, l, np.cos(theta))[0] * (Eth0_A * IdP_1 + Eth0_C * IdP_2)/ (np.sin(theta) * dH2_dr) \
             + 1j * sp.lpmn(m, l, np.cos(theta))[1] * (Eth0_A * IpP_1 + Eth0_C * IpP_2) * (-np.sin(theta)) / (k * H2) ) * \
             2 * np.sin(Mm * (phi2-phi1)/2) * np.sin(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
-        return np.abs(np.sum(Ephv))
-        # return(np.sum(Ephv)) # V/m
+        return np.sum(np.dot(delm, Ephv))
 
 def Eth_h_prot(theta, phi):
-    Eph0 = 1
-    k = 2 * np.pi * flm[1][0] / c
+    k = 2 * np.pi * flm_des / c
     Dphic = phi1 - phi1c
+    Eph0 = 1
 
     dH2_dr = np.tile(schelkunoff2(l, k * b),(m + 1, 1))
     H2 = np.tile(hankel_spher2(l, k * b),(m + 1, 1))
     
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ethh = ((-1j ** Ml) * (b * I_th * sp.lpmn(m, l, np.cos(theta))[1] * (-np.sin(theta)) / dH2_dr \
             + 1j * sp.lpmn(m, l, np.cos(theta))[0] * I_dth / (k * H2 * np.sin(theta)) ) * \
             4 * Eph0 * np.sin(Mm*Dphic/2) * np.cos(Mm*(phi2-phi1+Dphic)/2) * np.sin(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
-        return np.abs(np.sum(Ethh))
+        return np.sum(np.dot(delm, Ethh))
 
 def Eph_h_prot(theta, phi):
-    Eph0 = 1
-    k = 2 * np.pi * flm[1][0] / c
+    k = 2 * np.pi * flm_des / c
     Dphic = phi1 - phi1c
+    Eph0 = 1
 
     dH2_dr = np.tile(schelkunoff2(l, k * b),(m + 1, 1))
     H2 = np.tile(hankel_spher2(l, k * b),(m + 1, 1))
     
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # np.exp(-1j * k * r) / r ignorado por normalização
         Ephh = ((1j ** Ml) * (Mm**2 * b * I_th * sp.lpmn(m, l, np.cos(theta))[0] / (np.sin(theta) * dH2_dr) \
             + 1j * sp.lpmn(m, l, np.cos(theta))[1] * I_dth * (-np.sin(theta)) / (k *H2) ) * \
             2 * Eph0 * Dphic * np.sinc(Mm*Dphic/(2 * np.pi)) * np.cos(Mm*(phi2-phi1+Dphic)/2) * np.cos(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
-        return np.abs(np.sum(Ephh))
+        return np.sum(np.dot(delm, Ephh))
 
 def E_v(theta, phi):
     if isinstance(phi, np.ndarray):
-        u = np.vectorize(Eth_v_prot)(theta, phi)
-        v = np.vectorize(Eph_v_prot)(theta, phi)
+        u = np.abs(np.vectorize(Eth_v_prot)(theta, phi))
+        v = np.abs(np.vectorize(Eph_v_prot)(theta, phi))
     elif isinstance(theta, np.ndarray):
-        u = np.concatenate((np.vectorize(Eth_v_prot)(theta[:len(theta)//2], phi), np.vectorize(Eth_v_prot)(theta[:len(theta)//2], -phi)[::-1]))
-        v = np.concatenate((np.vectorize(Eph_v_prot)(theta[:len(theta)//2], phi), np.vectorize(Eph_v_prot)(theta[:len(theta)//2], -phi)[::-1]))
+        u = np.abs(np.concatenate((np.vectorize(Eth_v_prot)(theta[:len(theta)//2], phi), np.vectorize(Eth_v_prot)(theta[:len(theta)//2], -phi)[::-1])))
+        v = np.abs(np.concatenate((np.vectorize(Eph_v_prot)(theta[:len(theta)//2], phi), np.vectorize(Eph_v_prot)(theta[:len(theta)//2], -phi)[::-1])))
     tot = v**2 + u**2
-    # tot = v
     return np.clip(10*np.log10(tot/np.max(tot[~np.isnan(tot)])), -30, 0)
 
 def E_h(theta, phi):
     if isinstance(phi, np.ndarray):
-        u = np.vectorize(Eth_h_prot)(theta, phi)
-        v = np.vectorize(Eph_h_prot)(theta, phi)
+        u = np.abs(np.vectorize(Eth_h_prot)(theta, phi))
+        v = np.abs(np.vectorize(Eph_h_prot)(theta, phi))
     elif isinstance(theta, np.ndarray):
-        u = np.concatenate((np.vectorize(Eth_h_prot)(theta[:len(theta)//2], phi), np.vectorize(Eth_h_prot)(theta[:len(theta)//2], -phi)[::-1]))
-        v = np.concatenate((np.vectorize(Eph_h_prot)(theta[:len(theta)//2], phi), np.vectorize(Eph_h_prot)(theta[:len(theta)//2], -phi)[::-1]))
+        u = np.abs(np.concatenate((np.vectorize(Eth_h_prot)(theta[:len(theta)//2], phi), np.vectorize(Eth_h_prot)(theta[:len(theta)//2], -phi)[::-1])))
+        v = np.abs(np.concatenate((np.vectorize(Eph_h_prot)(theta[:len(theta)//2], phi), np.vectorize(Eph_h_prot)(theta[:len(theta)//2], -phi)[::-1])))
     tot = u**2 + v**2
-    # tot = v
     return np.clip(10*np.log10(tot/np.max(tot[~np.isnan(tot)])), -30, 0)
-
-if show:
-    inicio = time.time()
-    print('aqui')
-    testEv = E_v(90 * dtr+eps, np.arange(0,360,1) * dtr+eps)
-    testEh = E_h(90 * dtr+eps, np.arange(0,360,1) * dtr+eps)
-    fim = time.time()
-    print("Tempo decorrido para o cálculo paralelo: ", fim - inicio, "segundos\n\n")
-
 
 inicio = time.time()
 angulos = np.arange(0,360,1) * dtr + eps
@@ -570,3 +534,4 @@ print("Tempo total para o fim do código: ", fim_total - inicio_total, "segundos
 
 if show:
     plt.show()
+    figSm.show()
