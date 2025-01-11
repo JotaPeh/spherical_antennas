@@ -5,7 +5,7 @@ Microstrip Antennas with Circular Polarization, supervised by Prof. Dr. Daniel B
 the Electronic Engineering course at the Aeronautics Institute of Technology (ITA). These scripts are designed for the analysis
 and synthesis of spherical microstrip antennas with various polarization configurations (circular and linear) and other
 variations, exploring methods such as the resonant cavity method and the magnetic current method. The full version of the work
-can be accessed for more details at: https://1drv.ms/b/s!AiJsFG-QQveHh8Zi64OE_2u-dKuhMw?e=J3NySy
+can be accessed for more details at TC014_2024.pdf in this repository.
 
 - Dependencies:
 Version used: Python 3.11.6
@@ -63,7 +63,7 @@ de Microfita Esféricas com Polarização Circular, orientado pelo Prof. Dr. Dan
 conclusão do curso de Engenharia Eletrônica no Instituto Tecnológico de Aeronáutica. Esses scripts servem para a análise
 e síntese de antenas de microfita esféricas com diferentes configurações de polarização (circular e linear) e outras
 variações, explorando métodos como o da cavidade ressonante e o método da corrente magnética. A versão completa do trabalho
-pode ser acessada para mais detalhes em: https://1drv.ms/b/s!AiJsFG-QQveHh8Zi64OE_2u-dKuhMw?e=J3NySy
+pode ser acessada para mais detalhes em TC014_2024.pdf neste repositório.
 
 
 II - Dependências:
