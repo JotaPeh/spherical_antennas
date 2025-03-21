@@ -568,8 +568,9 @@ def Eth_v_prot(theta, phi):
         Ethv = ((1j ** Ml) * (b * sp.lpmn(m, l, np.cos(theta))[1] * (Eth0_A * IdP_1 + Eth0_C * IdP_2) * (-np.sin(theta))/ (dH2_dr) \
             + 1j * Mm**2 * sp.lpmn(m, l, np.cos(theta))[0] * (Eth0_A * IpP_1 + Eth0_C * IpP_2) / (k * np.sin(theta) * H2) ) * \
             (phi2-phi1) * np.sinc(Mm*(phi2-phi1)/(2*np.pi)) * np.cos(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
+
         return np.sum(np.dot(delm, Ethv))
-        
+
 def Eph_v_prot(theta, phi):
     k = 2 * np.pi * flm_des / c
     Eth0_A = Eth0_C = 1
@@ -587,7 +588,10 @@ def Eph_v_prot(theta, phi):
         Ephv = ((1j ** Ml) * (b * sp.lpmn(m, l, np.cos(theta))[0] * (Eth0_A * IdP_1 + Eth0_C * IdP_2)/ (np.sin(theta) * dH2_dr) \
             + 1j * sp.lpmn(m, l, np.cos(theta))[1] * (Eth0_A * IpP_1 + Eth0_C * IpP_2) * (-np.sin(theta)) / (k * H2) ) * \
             2 * np.sin(Mm * (phi2-phi1)/2) * np.sin(Mm * ((phi1 + phi2)/2 - phi)) / (np.pi * S_lm))
+        print(Ephv)
+        exit()
         return np.sum(np.dot(delm, Ephv))
+Eph_v_prot(45*dtr,45*dtr)
 
 def Eth_h_prot(theta, phi):
     k = 2 * np.pi * flm_des / c
