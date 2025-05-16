@@ -8,7 +8,8 @@ variations, exploring methods such as the resonant cavity method and the magneti
 can be accessed for more details at TC014_2024.pdf in this repository.
 
 - Dependencies:
-Version used: Python 3.11.6
+Python version used: 3.11.6
+Ansys HFSS verion used for comparison: 2019.2
 Installation of requirements: pip install -r requirements.txt
 If there is an issue saving images: pip install -U kaleido
 
@@ -67,7 +68,8 @@ pode ser acessada para mais detalhes em TC014_2024.pdf neste repositório.
 
 
 II - Dependências:
-Versão utilizada: Python 3.11.6
+Versão do Python utilizada: 3.11.6
+Versão do Ansys HFSS utilizada: 2019.2
 Instalação dos requisitos: pip install -r requirements.txt
 Caso haja problema no salvamento de imagens: pip install -U kaleido
 
